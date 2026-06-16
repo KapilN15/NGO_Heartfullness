@@ -65,36 +65,99 @@ def members_report():
 @reports_bp.route('/reports/attendance')
 @login_required
 def attendance_report():
-    cat_f      = request.args.get('category', '')
-    date_from  = request.args.get('date_from', '')
-    date_to    = request.args.get('date_to', '')
+    cat_f = request.args.get('category', '')
+    date_from = request.args.get('date_from', '')
+    date_to = request.args.get('date_to', '')
 
     q = db.session.query(
-        Session.session_id, Session.session_name, Session.date,
+        Session.id,
+        Session.session_id,
+        Session.session_name,
+        Session.date,
         SessionCategory.name.label('category_name'),
-        func.count(Attendance.id).label('total'),
-        func.sum(case((Attendance.status == 'present', 1), else_=0)).label('present')
-    ).outerjoin(Attendance, Attendance.session_id == Session.id
-    ).outerjoin(SessionCategory, SessionCategory.id == Session.category_id
-    ).filter(Session.status == 'completed')
 
-    if cat_f:     q = q.filter(Session.category_id == int(cat_f))
+        func.count(Attendance.id).label('total'),
+
+        func.coalesce(
+            func.sum(
+                case(
+                    (Attendance.status == 'present', 1),
+                    else_=0
+                )
+            ),
+            0
+        ).label('present')
+
+    ).outerjoin(
+        Attendance,
+        Attendance.session_id == Session.id
+
+    ).outerjoin(
+        SessionCategory,
+        SessionCategory.id == Session.category_id
+
+    ).filter(
+        Session.status == 'completed'
+    )
+
+    if cat_f:
+        q = q.filter(Session.category_id == int(cat_f))
+
     if date_from:
         from datetime import datetime
-        try: q = q.filter(Session.date >= datetime.strptime(date_from, '%Y-%m-%d').date())
-        except: pass
+
+        try:
+            q = q.filter(
+                Session.date >= datetime.strptime(
+                    date_from,
+                    '%Y-%m-%d'
+                ).date()
+            )
+        except:
+            pass
+
     if date_to:
         from datetime import datetime
-        try: q = q.filter(Session.date <= datetime.strptime(date_to, '%Y-%m-%d').date())
-        except: pass
 
-    sessions   = q.group_by(Session.id).order_by(Session.date.desc()).all()
-    session_cats = SessionCategory.query.filter_by(status='active').all()
+        try:
+            q = q.filter(
+                Session.date <= datetime.strptime(
+                    date_to,
+                    '%Y-%m-%d'
+                ).date()
+            )
+        except:
+            pass
 
-    return render_template('reports/attendance.html',
-        sessions=sessions, session_cats=session_cats,
-        cat_f=cat_f, date_from=date_from, date_to=date_to)
+    sessions = (
+        q.group_by(
+            Session.id,
+            Session.session_id,
+            Session.session_name,
+            Session.date,
+            SessionCategory.name
+        )
+        .order_by(Session.date.desc())
+        .all()
+    )
 
+    session_cats = SessionCategory.query.filter_by(
+        status='active'
+    ).all()
+
+    return render_template(
+        'reports/attendance.html',
+
+        sessions=sessions,
+
+        session_cats=session_cats,
+
+        cat_f=cat_f,
+
+        date_from=date_from,
+
+        date_to=date_to
+    )
 
 # ── Sessions Report ────────────────────────────────────────────
 @reports_bp.route('/reports/sessions')
@@ -199,38 +262,215 @@ def export_members_pdf():
 @reports_bp.route('/reports/export/attendance.csv')
 @login_required
 def export_attendance_csv():
-    cat_f     = request.args.get('category', '')
+
+    cat_f = request.args.get('category', '')
+
     date_from = request.args.get('date_from', '')
-    date_to   = request.args.get('date_to', '')
+
+    date_to = request.args.get('date_to', '')
 
     q = db.session.query(
-        Session.session_id, Session.session_name, Session.date,
+
+        Session.id,
+
+        Session.session_id,
+
+        Session.session_name,
+
+        Session.date,
+
         SessionCategory.name.label('cat_name'),
+
         func.count(Attendance.id).label('total'),
-        func.sum(case((Attendance.status == 'present', 1), else_=0)).label('present')
-    ).outerjoin(Attendance, Attendance.session_id == Session.id
-    ).outerjoin(SessionCategory, SessionCategory.id == Session.category_id
-    ).filter(Session.status == 'completed')
 
-    if cat_f: q = q.filter(Session.category_id == int(cat_f))
+        func.coalesce(
+
+            func.sum(
+
+                case(
+
+                    (Attendance.status == 'present', 1),
+
+                    else_=0
+
+                )
+
+            ),
+
+            0
+
+        ).label('present')
+
+    ).outerjoin(
+
+        Attendance,
+
+        Attendance.session_id == Session.id
+
+    ).outerjoin(
+
+        SessionCategory,
+
+        SessionCategory.id == Session.category_id
+
+    ).filter(
+
+        Session.status == 'completed'
+
+    )
+
+    if cat_f:
+
+        q = q.filter(
+
+            Session.category_id == int(cat_f)
+
+        )
+
     if date_from:
-        from datetime import datetime
-        try: q = q.filter(Session.date >= datetime.strptime(date_from, '%Y-%m-%d').date())
-        except: pass
-    if date_to:
-        from datetime import datetime
-        try: q = q.filter(Session.date <= datetime.strptime(date_to, '%Y-%m-%d').date())
-        except: pass
 
-    sessions = q.group_by(Session.id).order_by(Session.date.desc()).all()
+        from datetime import datetime
+
+        try:
+
+            q = q.filter(
+
+                Session.date >= datetime.strptime(
+
+                    date_from,
+
+                    '%Y-%m-%d'
+
+                ).date()
+
+            )
+
+        except:
+
+            pass
+
+    if date_to:
+
+        from datetime import datetime
+
+        try:
+
+            q = q.filter(
+
+                Session.date <= datetime.strptime(
+
+                    date_to,
+
+                    '%Y-%m-%d'
+
+                ).date()
+
+            )
+
+        except:
+
+            pass
+
+    sessions = (
+
+        q.group_by(
+
+            Session.id,
+
+            Session.session_id,
+
+            Session.session_name,
+
+            Session.date,
+
+            SessionCategory.name
+
+        )
+
+        .order_by(
+
+            Session.date.desc()
+
+        )
+
+        .all()
+
+    )
+
     buf = io.StringIO()
+
     w = csv.writer(buf)
-    w.writerow(['Session ID','Session Name','Category','Date','Total','Present','Absent','Attendance %'])
+
+    w.writerow([
+
+        'Session ID',
+
+        'Session Name',
+
+        'Category',
+
+        'Date',
+
+        'Total',
+
+        'Present',
+
+        'Absent',
+
+        'Attendance %'
+
+    ])
+
     for s in sessions:
-        absent = (s.total or 0) - (s.present or 0)
-        pct    = round((s.present or 0) / s.total * 100, 1) if s.total else 0
-        w.writerow([s.session_id, s.session_name, s.cat_name or '', s.date,
-                    s.total or 0, s.present or 0, absent, pct])
+
+        total = s.total or 0
+
+        present = s.present or 0
+
+        absent = total - present
+
+        pct = round(
+
+            (present / total) * 100,
+
+            1
+
+        ) if total else 0
+
+        w.writerow([
+
+            s.session_id,
+
+            s.session_name,
+
+            s.cat_name or '',
+
+            s.date,
+
+            total,
+
+            present,
+
+            absent,
+
+            pct
+
+        ])
+
     buf.seek(0)
-    return send_file(io.BytesIO(buf.getvalue().encode()), mimetype='text/csv',
-                     as_attachment=True, download_name='attendance_report.csv')
+
+    return send_file(
+
+        io.BytesIO(
+
+            buf.getvalue().encode()
+
+        ),
+
+        mimetype='text/csv',
+
+        as_attachment=True,
+
+        download_name='attendance_report.csv'
+
+    )
