@@ -1,0 +1,163 @@
+{% extends 'base.html' %}
+{% block title %}Members History - Heartfulness NGO{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-title">Members History</div>
+    <div class="page-subtitle">Historical records of inactive and deleted members</div>
+  </div>
+  <a href="{{ url_for('members.index') }}" class="btn btn-outline-secondary btn-sm" style="height:38px;display:flex;align-items:center;gap:4px">
+    <i class="bi bi-arrow-left"></i> Back to Members
+  </a>
+</div>
+
+<!-- Filters -->
+<div class="filter-bar">
+  <form method="get" action="{{ url_for('members.history') }}" class="d-flex gap-2 flex-wrap w-100 align-items-end">
+    <div class="filter-group" style="min-width:200px;flex:1">
+      <label>Search</label>
+      <div class="search-wrapper">
+        <i class="bi bi-search"></i>
+        <input type="text" name="search" class="form-control" placeholder="Member Name or ID..."
+               value="{{ search }}" style="padding-left:32px">
+      </div>
+    </div>
+    <div class="filter-group">
+      <label>Status</label>
+      <select name="status" class="form-select">
+        <option value="">All</option>
+        <option value="inactive" {% if status_f=='inactive' %}selected{% endif %}>Inactive</option>
+        <option value="deleted" {% if status_f=='deleted' %}selected{% endif %}>Deleted</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label>Join Date From</label>
+      <input type="date" name="join_from" class="form-control" value="{{ join_from }}">
+    </div>
+    <div class="filter-group">
+      <label>Join Date To</label>
+      <input type="date" name="join_to" class="form-control" value="{{ join_to }}">
+    </div>
+    <div class="filter-group">
+      <label>Inactive From</label>
+      <input type="date" name="inactive_from" class="form-control" value="{{ inactive_from }}">
+    </div>
+    <div class="filter-group">
+      <label>Inactive To</label>
+      <input type="date" name="inactive_to" class="form-control" value="{{ inactive_to }}">
+    </div>
+    <div class="filter-group">
+      <label>Deleted From</label>
+      <input type="date" name="deleted_from" class="form-control" value="{{ deleted_from }}">
+    </div>
+    <div class="filter-group">
+      <label>Deleted To</label>
+      <input type="date" name="deleted_to" class="form-control" value="{{ deleted_to }}">
+    </div>
+    <div style="display:flex;gap:8px;align-items:flex-end">
+      <button type="submit" class="btn-primary-custom"><i class="bi bi-search"></i> Filter</button>
+      <a href="{{ url_for('members.history') }}" class="btn btn-outline-secondary btn-sm" style="height:38px;display:flex;align-items:center">
+        <i class="bi bi-x-lg"></i>
+      </a>
+    </div>
+  </form>
+</div>
+
+<!-- Table -->
+<div class="table-container">
+  <div style="padding:16px 20px;border-bottom:1px solid var(--border-color);display:flex;justify-content:space-between;align-items:center">
+    <span style="font-size:14px;color:var(--text-secondary)">
+      Showing {{ members.items|length }} of {{ members.total }} records
+    </span>
+  </div>
+  <div class="table-responsive">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Member ID</th>
+          <th>Member Name</th>
+          <th>Join Date</th>
+          <th>Inactive Date</th>
+          <th>Deleted Date</th>
+          <th>Current Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for m in members.items %}
+        <tr>
+          <td><span class="member-id-badge">{{ m.member_id }}</span></td>
+          <td><strong>{{ m.full_name }}</strong></td>
+          <td>{{ m.join_date.strftime('%d-%m-%Y') if m.join_date else '-' }}</td>
+          <td>
+            {% if m.inactive_date %}
+              <span style="color:#f59e0b;font-size:13px">{{ m.inactive_date.strftime('%d-%m-%Y') }}</span>
+            {% else %}
+              <span style="color:var(--text-muted);font-size:12px">-</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if m.deleted_date %}
+              <span style="color:#dc2626;font-size:13px">{{ m.deleted_date.strftime('%d-%m-%Y') }}</span>
+            {% else %}
+              <span style="color:var(--text-muted);font-size:12px">-</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if m.status == 'deleted' %}
+              <span style="background:#fef2f2;color:#dc2626;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:600">Deleted</span>
+            {% elif m.status == 'inactive' %}
+              <span style="background:#fffbeb;color:#f59e0b;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:600">Inactive</span>
+            {% else %}
+              <span style="background:#f0fdf4;color:#16a34a;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:600">Active</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if current_user.can('manage_members') %}
+            <form method="POST" action="{{ url_for('members.restore', id=m.id) }}" style="margin:0;display:inline">
+              <button type="submit" class="btn btn-outline-success btn-sm"
+                      onclick="return confirm('Restore {{ m.full_name }} to active status?')"
+                      title="Restore Member">
+                <i class="bi bi-arrow-counterclockwise"></i> Restore
+              </button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" class="text-center py-4 text-secondary">No history records found.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  {% if members.pages > 1 %}
+  <div style="padding:16px 20px;border-top:1px solid var(--border-color)">
+    <nav>
+      <ul class="pagination pagination-sm mb-0">
+        <li class="page-item {% if not members.has_prev %}disabled{% endif %}">
+          <a class="page-link" href="{{ url_for('members.history', page=members.prev_num, search=search, status=status_f, join_from=join_from, join_to=join_to, inactive_from=inactive_from, inactive_to=inactive_to, deleted_from=deleted_from, deleted_to=deleted_to) }}">
+            <i class="bi bi-chevron-left"></i>
+          </a>
+        </li>
+        {% for p in members.iter_pages() %}
+          {% if p %}
+          <li class="page-item {% if p == members.page %}active{% endif %}">
+            <a class="page-link" href="{{ url_for('members.history', page=p, search=search, status=status_f, join_from=join_from, join_to=join_to, inactive_from=inactive_from, inactive_to=inactive_to, deleted_from=deleted_from, deleted_to=deleted_to) }}">{{ p }}</a>
+          </li>
+          {% else %}
+          <li class="page-item disabled"><span class="page-link">…</span></li>
+          {% endif %}
+        {% endfor %}
+        <li class="page-item {% if not members.has_next %}disabled{% endif %}">
+          <a class="page-link" href="{{ url_for('members.history', page=members.next_num, search=search, status=status_f, join_from=join_from, join_to=join_to, inactive_from=inactive_from, inactive_to=inactive_to, deleted_from=deleted_from, deleted_to=deleted_to) }}">
+            <i class="bi bi-chevron-right"></i>
+          </a>
+        </li>
+      </ul>
+    </nav>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
