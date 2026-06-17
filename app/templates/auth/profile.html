@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% block title %}My Profile - Heartfulness NGO{% endblock %}
+{% block page_title %}My Profile{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <div>
+    <div class="page-title">My Profile</div>
+    <div class="page-subtitle">Account details and password</div>
+  </div>
+</div>
+
+<div class="form-card" style="max-width:520px">
+  <h6 style="margin-bottom:14px">Account Details</h6>
+  <p style="font-size:13px;color:var(--text-2);margin-bottom:4px"><strong>Username:</strong> {{ current_user.username }}</p>
+  <p style="font-size:13px;color:var(--text-2);margin-bottom:4px"><strong>Full Name:</strong> {{ current_user.full_name or '—' }}</p>
+  <p style="font-size:13px;color:var(--text-2);margin-bottom:0"><strong>Role:</strong> {{ current_user.role_display }}</p>
+</div>
+
+<div class="form-card" style="max-width:520px;margin-top:18px">
+  <h6 style="margin-bottom:14px"><i class="bi bi-key me-2"></i>Change Password</h6>
+  <form method="POST" action="{{ url_for('auth.change_own_password') }}">
+    <div class="mb-3">
+      <label class="form-label">Current Password *</label>
+      <input type="password" name="current_password" class="form-control" required placeholder="Enter current password">
+    </div>
+    <div class="mb-3">
+      <label class="form-label">New Password *</label>
+      <input type="password" name="new_password" class="form-control" required minlength="6" placeholder="Minimum 6 characters">
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Confirm New Password *</label>
+      <input type="password" name="confirm_password" class="form-control" required minlength="6" placeholder="Re-enter new password">
+    </div>
+    <button type="submit" class="btn-primary-custom">
+      <i class="bi bi-check-lg me-1"></i> Update Password
+    </button>
+  </form>
+</div>
+{% endblock %}
