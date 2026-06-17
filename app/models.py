@@ -9,19 +9,40 @@ member_category = db.Table('member_category',
     db.Column('category_id', db.Integer, db.ForeignKey('categories.id'), primary_key=True)
 )
 
+# Role hierarchy order (lower index = higher authority)
+ROLE_HIERARCHY = ['boss_super_admin', 'super_admin', 'admin', 'coordinator', 'trainer']
+
+ROLE_DISPLAY = {
+    'boss_super_admin': 'Boss Super Admin',
+    'super_admin':      'Super Admin',
+    'admin':            'Admin',
+    'coordinator':      'Coordinator',
+    'trainer':          'Trainer',
+}
+
+
+def role_rank(role):
+    """Return numeric rank; lower = more powerful. Unknown roles get max rank."""
+    try:
+        return ROLE_HIERARCHY.index(role)
+    except ValueError:
+        return len(ROLE_HIERARCHY)
+
 
 class User(UserMixin, db.Model):
     __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
-    role = db.Column(db.String(20), nullable=False)  # super_admin, admin, coordinator, trainer
+    role = db.Column(db.String(20), nullable=False)
     full_name = db.Column(db.String(100))
     email = db.Column(db.String(100))
     status = db.Column(db.String(10), default='active')  # active, inactive
     theme = db.Column(db.String(10), default='light')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     created_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    failed_login_attempts = db.Column(db.Integer, default=0)
+    account_locked_until = db.Column(db.DateTime, nullable=True)
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -34,6 +55,7 @@ class User(UserMixin, db.Model):
 
     def can(self, permission):
         perms = {
+            'boss_super_admin': ['all'],
             'super_admin': ['all'],
             'admin': ['manage_members', 'import_csv', 'manage_sessions', 'mark_attendance',
                       'view_reports', 'manage_users', 'reopen_attendance'],
@@ -46,7 +68,30 @@ class User(UserMixin, db.Model):
 
     @property
     def role_display(self):
-        return self.role.replace('_', ' ').title()
+        return ROLE_DISPLAY.get(self.role, self.role.replace('_', ' ').title())
+
+    @property
+    def role_rank(self):
+        return role_rank(self.role)
+
+    def is_boss_super_admin(self):
+        return self.role == 'boss_super_admin'
+
+    def can_manage_user(self, target):
+        """Return True if self has authority to manage target user."""
+        if target.role == 'boss_super_admin':
+            # Nobody can manage boss_super_admin except themselves
+            return self.is_boss_super_admin() and self.id == target.id
+        if self.role == 'boss_super_admin':
+            return True
+        if self.role == 'super_admin':
+            # Can manage super_admin, admin, coordinator, trainer
+            return target.role in ('super_admin', 'admin', 'coordinator', 'trainer')
+        if self.role == 'admin':
+            return target.role in ('admin', 'coordinator', 'trainer')
+        if self.role == 'coordinator':
+            return target.role == 'trainer'
+        return False
 
 
 class Member(db.Model):
@@ -126,7 +171,7 @@ class Session(db.Model):
     start_time = db.Column(db.String(10))
     end_time = db.Column(db.String(10))
     venue = db.Column(db.String(150))
-    status = db.Column(db.String(15), default='scheduled')  # draft, scheduled, completed, cancelled
+    status = db.Column(db.String(15), default='scheduled')
     attendance_locked = db.Column(db.Boolean, default=False)
     created_by = db.Column(db.Integer, db.ForeignKey('users.id'))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -149,7 +194,7 @@ class Attendance(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     session_id = db.Column(db.Integer, db.ForeignKey('sessions.id'), nullable=False)
     member_id = db.Column(db.Integer, db.ForeignKey('members.id'), nullable=False)
-    status = db.Column(db.String(10), default='absent')  # present, absent
+    status = db.Column(db.String(10), default='absent')
     marked_by = db.Column(db.Integer, db.ForeignKey('users.id'))
     marked_at = db.Column(db.DateTime, default=datetime.utcnow)
 
@@ -164,6 +209,8 @@ class AuditLog(db.Model):
     role = db.Column(db.String(20))
     action = db.Column(db.String(100))
     description = db.Column(db.Text)
+    target_username = db.Column(db.String(50), nullable=True)
+    target_role = db.Column(db.String(20), nullable=True)
     ip_address = db.Column(db.String(50))
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
 
