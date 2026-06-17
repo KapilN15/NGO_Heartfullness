@@ -5,7 +5,14 @@ from app import db
 
 
 def seed_data():
-    if User.query.count() > 0:
+    try:
+    
+        if User.query.first():
+    
+            return
+    
+    except Exception:
+    
         return
 
     # sa1 is the one-and-only Boss Super Admin
