@@ -80,46 +80,43 @@ class User(UserMixin, db.Model):
     def can_manage_user(self, target):
         """Return True if self can manage target user."""
     
-        # Cannot manage yourself except Boss Super Admin
-        if self.id == target.id:
-            return self.role == 'boss_super_admin'
+        # Boss Super Admin can manage everyone except themselves
+        if self.role == 'boss_super_admin':
+            return self.id != target.id
     
         # Nobody can manage Boss Super Admin
         if target.role == 'boss_super_admin':
             return False
     
-        # Boss Super Admin can manage everyone
-        if self.role == 'boss_super_admin':
-            return True
+        # Cannot manage own account
+        if self.id == target.id:
+            return False
     
-        # Super Admin -> Admin, Coordinator, Trainer
-         # Super Admin
+        # Super Admin
         if self.role == 'super_admin':
-        
-            # Cannot manage Boss Super Admin
-            if other.role == 'boss_super_admin':
-                return False
-        
-            # Cannot manage self
-            if self.id == other.id:
-                return False
-        
-            # Can manage all other Super Admins
-            if other.role == 'super_admin':
-                return True
-        
-            # Can manage Admin, Coordinator, Trainer
-            return True
     
-        # Admin -> Coordinator, Trainer
+            # Can manage other Super Admins
+            if target.role == 'super_admin':
+                return True
+    
+            # Can manage Admin, Coordinator, Trainer
+            return target.role in (
+                'admin',
+                'coordinator',
+                'trainer'
+            )
+    
+        # Admin
         if self.role == 'admin':
+    
             return target.role in (
                 'coordinator',
                 'trainer'
             )
     
-        # Coordinator -> Trainer
+        # Coordinator
         if self.role == 'coordinator':
+    
             return target.role == 'trainer'
     
         return False
