@@ -8,6 +8,7 @@ import os
 load_dotenv()
 
 db = SQLAlchemy()
+
 login_manager = LoginManager()
 
 
@@ -51,9 +52,48 @@ def _migrate_member_columns():
                     pass
 
 
+def _migrate_user_columns():
+    """Add new user columns if they don't exist."""
+
+    from sqlalchemy import text, inspect
+
+    inspector = inspect(db.engine)
+
+    if 'users' not in inspector.get_table_names():
+        return
+
+    existing = {col['name'] for col in inspector.get_columns('users')}
+
+    new_cols = {
+        'failed_login_attempts': 'INTEGER DEFAULT 0',
+        'account_locked_until': 'TIMESTAMP',
+    }
+
+    with db.engine.connect() as conn:
+
+        for col, col_type in new_cols.items():
+
+            if col not in existing:
+
+                try:
+
+                    conn.execute(
+                        text(
+                            f'ALTER TABLE users ADD COLUMN {col} {col_type}'
+                        )
+                    )
+
+                    conn.commit()
+
+                except Exception:
+
+                    pass
+
+
 def get_database_uri():
 
     # Render PostgreSQL
+
     database_url = os.environ.get('DATABASE_URL')
 
     if database_url:
@@ -172,6 +212,8 @@ def create_app():
     with app.app_context():
 
         db.create_all()
+
+        _migrate_user_columns()
 
         _migrate_member_columns()
 
