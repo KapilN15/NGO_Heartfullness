@@ -77,21 +77,41 @@ class User(UserMixin, db.Model):
     def is_boss_super_admin(self):
         return self.role == 'boss_super_admin'
 
-    def can_manage_user(self, target):
-        """Return True if self has authority to manage target user."""
-        if target.role == 'boss_super_admin':
-            # Nobody can manage boss_super_admin except themselves
-            return self.is_boss_super_admin() and self.id == target.id
-        if self.role == 'boss_super_admin':
-            return True
-        if self.role == 'super_admin':
-            # Can manage super_admin, admin, coordinator, trainer
-            return target.role in ('super_admin', 'admin', 'coordinator', 'trainer')
-        if self.role == 'admin':
-            return target.role in ('admin', 'coordinator', 'trainer')
-        if self.role == 'coordinator':
-            return target.role == 'trainer'
+def can_manage_user(self, target):
+    """Return True if self can manage target user."""
+
+    # Cannot manage yourself except Boss Super Admin
+    if self.id == target.id:
+        return self.role == 'boss_super_admin'
+
+    # Nobody can manage Boss Super Admin
+    if target.role == 'boss_super_admin':
         return False
+
+    # Boss Super Admin can manage everyone
+    if self.role == 'boss_super_admin':
+        return True
+
+    # Super Admin -> Admin, Coordinator, Trainer
+    if self.role == 'super_admin':
+        return target.role in (
+            'admin',
+            'coordinator',
+            'trainer'
+        )
+
+    # Admin -> Coordinator, Trainer
+    if self.role == 'admin':
+        return target.role in (
+            'coordinator',
+            'trainer'
+        )
+
+    # Coordinator -> Trainer
+    if self.role == 'coordinator':
+        return target.role == 'trainer'
+
+    return False
 
 
 class Member(db.Model):
