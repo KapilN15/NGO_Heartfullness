@@ -4,7 +4,7 @@ from app.models import AuditLog
 from app import db
 
 
-def log_action(action, description=''):
+def log_action(action, description='', target_username=None, target_role=None):
     try:
         log = AuditLog(
             user_id=current_user.id if current_user.is_authenticated else None,
@@ -12,6 +12,8 @@ def log_action(action, description=''):
             role=current_user.role if current_user.is_authenticated else 'system',
             action=action,
             description=description,
+            target_username=target_username,
+            target_role=target_role,
             ip_address=request.remote_addr if request else None
         )
         db.session.add(log)
