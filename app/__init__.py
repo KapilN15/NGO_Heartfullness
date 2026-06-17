@@ -31,7 +31,7 @@ def _migrate_member_columns():
         'deleted_by': 'INTEGER',
     }
 
-    with db.engine.connect() as conn:
+    with db.engine.begin() as conn:
 
         for col, col_type in new_cols.items():
 
@@ -41,15 +41,16 @@ def _migrate_member_columns():
 
                     conn.execute(
                         text(
-                            f'ALTER TABLE members ADD COLUMN {col} {col_type}'
+                            f'''
+                            ALTER TABLE members
+                            ADD COLUMN IF NOT EXISTS {col} {col_type}
+                            '''
                         )
                     )
 
-                    conn.commit()
+                except Exception as e:
 
-                except Exception:
-
-                    pass
+                    print(f'Member migration error: {e}')
 
 
 def _migrate_user_columns():
@@ -69,7 +70,7 @@ def _migrate_user_columns():
         'account_locked_until': 'TIMESTAMP',
     }
 
-    with db.engine.connect() as conn:
+    with db.engine.begin() as conn:
 
         for col, col_type in new_cols.items():
 
@@ -79,15 +80,16 @@ def _migrate_user_columns():
 
                     conn.execute(
                         text(
-                            f'ALTER TABLE users ADD COLUMN {col} {col_type}'
+                            f'''
+                            ALTER TABLE users
+                            ADD COLUMN IF NOT EXISTS {col} {col_type}
+                            '''
                         )
                     )
 
-                    conn.commit()
+                except Exception as e:
 
-                except Exception:
-
-                    pass
+                    print(f'User migration error: {e}')
 
 
 def get_database_uri():
@@ -211,14 +213,25 @@ def create_app():
 
     with app.app_context():
 
-        db.create_all()
+        try:
 
-        _migrate_user_columns()
+            # Create tables
+            db.create_all()
 
-        _migrate_member_columns()
+            # Run migrations
+            _migrate_user_columns()
 
-        from app.utils.seed import seed_data
+            _migrate_member_columns()
 
-        seed_data()
+            # Run again safely
+            db.create_all()
+
+            from app.utils.seed import seed_data
+
+            seed_data()
+
+        except Exception as e:
+
+            print(f'Database initialization error: {e}')
 
     return app
