@@ -128,6 +128,17 @@ body{
 }
 .logout-btn:hover{background:rgba(220,38,38,0.20);color:#FCA5A5;}
 
+/* Mobile sidebar backdrop — dims the page and closes the sidebar on tap */
+.sidebar-overlay{
+  position:fixed;inset:0;
+  background:rgba(0,0,0,.5);
+  z-index:199;
+  opacity:0;pointer-events:none;
+  transition:opacity .25s ease;
+}
+.sidebar-overlay.active{opacity:1;pointer-events:auto;}
+body.sidebar-open{overflow:hidden;}
+
 /* ── Main content ────────────────────────────────────────── */
 .main-content{
   margin-left:var(--sidebar-width);
