@@ -1,139 +1,311 @@
-{% extends 'base.html' %}
-{% block title %}Users - Heartfulness NGO{% endblock %}
-{% block page_title %}User Management{% endblock %}
-{% block content %}
-<div class="page-header">
-  <div>
-    <div class="page-title">User Management</div>
-    <div class="page-subtitle">Manage staff accounts and permissions</div>
-  </div>
-  {% if current_user.has_role('admin','super_admin') %}
-  <a href="{{ url_for('users.add') }}" class="btn-primary-custom">
-    <i class="bi bi-plus-lg"></i> Add User
-  </a>
-  {% endif %}
-</div>
+  {% extends 'base.html' %}
+  {% block title %}Users - Heartfulness NGO{% endblock %}
+  {% block page_title %}User Management{% endblock %}
+  {% block content %}
 
-<!-- Filters -->
-<div class="filter-bar">
-  <form method="get" class="d-flex gap-2 flex-wrap w-100 align-items-end">
-    <div class="filter-group flex-grow-1">
-      <label>Search</label>
-      <div class="filter-search-wrapper">
-        <i class="bi bi-search"></i>
-        <input type="text" name="search" class="form-control" placeholder="Username, full name, email..."
-               value="{{ search }}">
-      </div>
+  <div class="page-header">
+    <div>
+      <div class="page-title">User Management</div>
+      <div class="page-subtitle">Manage staff accounts and access control</div>
     </div>
-    <div class="filter-group">
-      <label>Role</label>
-      <select name="role" class="form-select">
-        <option value="">All Roles</option>
-        <option value="super_admin"  {% if role_f=='super_admin'  %}selected{% endif %}>Super Admin</option>
-        <option value="admin"        {% if role_f=='admin'        %}selected{% endif %}>Admin</option>
-        <option value="coordinator"  {% if role_f=='coordinator'  %}selected{% endif %}>Coordinator</option>
-        <option value="trainer"      {% if role_f=='trainer'      %}selected{% endif %}>Trainer</option>
-      </select>
-    </div>
-    <div class="filter-group">
-      <label>Status</label>
-      <select name="status" class="form-select">
-        <option value="">All</option>
-        <option value="active"   {% if status_f=='active'   %}selected{% endif %}>Active</option>
-        <option value="inactive" {% if status_f=='inactive' %}selected{% endif %}>Inactive</option>
-      </select>
-    </div>
-    <div style="display:flex;gap:8px;align-items:flex-end">
-      <button type="submit" class="btn-primary-custom"><i class="bi bi-search"></i> Filter</button>
-      <a href="{{ url_for('users.index') }}" class="btn btn-outline-secondary btn-sm"
-         style="height:36px;display:flex;align-items:center;padding:0 10px">
-        <i class="bi bi-x-lg"></i>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      {% if current_user.has_role('boss_super_admin','super_admin','admin') %}
+      <a href="{{ url_for('users.logs') }}" class="btn btn-outline-secondary btn-sm"
+        style="height:36px;display:flex;align-items:center;gap:6px">
+        <i class="bi bi-journal-text"></i> User Logs
       </a>
+      {% endif %}
+      {% if current_user.is_boss_super_admin() and super_admins_for_transfer %}
+      <button type="button" class="btn btn-outline-warning btn-sm"
+              data-bs-toggle="modal" data-bs-target="#transferModal"
+              style="height:36px;display:flex;align-items:center;gap:6px">
+        <i class="bi bi-arrow-left-right"></i> Transfer Ownership
+      </button>
+      {% endif %}
+      {% if allowed_create_roles %}
+      <a href="{{ url_for('users.add') }}" class="btn-primary-custom">
+        <i class="bi bi-plus-lg"></i> Add User
+      </a>
+      {% endif %}
     </div>
-  </form>
-</div>
-
-<!-- Table -->
-<div class="table-container">
-  <div style="padding:12px 18px;border-bottom:1px solid var(--border);font-size:13px;color:var(--text-2)">
-    {{ users|length }} user{% if users|length != 1 %}s{% endif %} found
   </div>
-  <div class="table-responsive">
-    <table class="table">
-      <thead>
-        <tr>
-          <th>#</th><th>Username</th><th>Full Name</th><th>Role</th>
-          <th>Email</th><th>Status</th><th>Created</th><th>Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for u in users %}
-        <tr>
-          <td>{{ loop.index }}</td>
-          <td><strong>{{ u.username }}</strong></td>
-          <td>{{ u.full_name or '—' }}</td>
-          <td>
-            <span style="background:var(--accent-light);color:var(--accent);
-                         padding:2px 9px;border-radius:12px;font-size:11px;font-weight:600">
-              {{ u.role_display }}
-            </span>
-          </td>
-          <td style="font-size:12px;color:var(--text-2)">{{ u.email or '—' }}</td>
-          <td><span class="badge-{{ u.status }}">{{ u.status.title() }}</span></td>
-          <td style="font-size:12px">{{ u.created_at.strftime('%d %b %Y') }}</td>
-          <td>
-            <div style="display:flex;gap:4px;flex-wrap:wrap">
-              {% if current_user.has_role('admin','super_admin') %}
-              <a href="{{ url_for('users.edit', id=u.id) }}" class="btn-sm-action btn-edit" title="Edit">
-                <i class="bi bi-pencil"></i>
-              </a>
-              {% if current_user.has_role('super_admin') %}
-              <button type="button" class="btn-sm-action btn-view"
-                      data-bs-toggle="modal" data-bs-target="#pwdModal{{ u.id }}" title="Change Password">
-                <i class="bi bi-key"></i>
-              </button>
-              {% endif %}
-              {% if u.id != current_user.id %}
-              <form method="POST" action="{{ url_for('users.toggle_status', id=u.id) }}" style="margin:0">
-                <button type="submit" class="btn-sm-action btn-{% if u.status=='active' %}delete{% else %}success-sm{% endif %}"
-                        data-confirm="Change status for {{ u.username }}?" title="Toggle Status">
-                  <i class="bi bi-{% if u.status=='active' %}lock{% else %}unlock{% endif %}"></i>
-                </button>
-              </form>
-              {% endif %}
-              {% endif %}
-            </div>
-          </td>
-        </tr>
 
-        {% if current_user.has_role('super_admin') %}
-        <!-- Change Password Modal -->
-        <div class="modal fade" id="pwdModal{{ u.id }}" tabindex="-1">
-          <div class="modal-dialog modal-dialog-centered modal-sm">
-            <div class="modal-content">
-              <div class="modal-header">
-                <h6 class="modal-title"><i class="bi bi-key me-2"></i>Change Password — {{ u.username }}</h6>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+  <!-- Filters -->
+  <div class="filter-bar">
+    <form method="get" class="d-flex gap-2 flex-wrap w-100 align-items-end">
+      <div class="filter-group flex-grow-1">
+        <label>Search</label>
+        <div class="filter-search-wrapper">
+          <i class="bi bi-search"></i>
+          <input type="text" name="search" class="form-control" placeholder="Username, full name, email..."
+                value="{{ search }}">
+        </div>
+      </div>
+      <div class="filter-group">
+        <label>Role</label>
+
+        <select name="role" class="form-select">
+
+          <option value="">All Roles</option>
+
+          {% for r in role_hierarchy %}
+
+            {% if r != 'boss_super_admin' %}
+
+            <option value="{{ r }}"
+              {% if role_f == r %}selected{% endif %}>
+
+              {{ role_display[r] }}
+
+            </option>
+
+            {% endif %}
+
+          {% endfor %}
+
+        </select>
+
+      </div>
+      <div class="filter-group">
+        <label>Status</label>
+        <select name="status" class="form-select">
+          <option value="">All</option>
+          <option value="active"   {% if status_f=='active'   %}selected{% endif %}>Active</option>
+          <option value="inactive" {% if status_f=='inactive' %}selected{% endif %}>Inactive</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Sort By</label>
+        <select name="sort" class="form-select">
+          <option value="role"    {% if sort_by=='role'    %}selected{% endif %}>Role Hierarchy</option>
+          <option value="created" {% if sort_by=='created' %}selected{% endif %}>Created Date</option>
+        </select>
+      </div>
+      <div style="display:flex;gap:8px;align-items:flex-end">
+        <button type="submit" class="btn-primary-custom"><i class="bi bi-search"></i> Filter</button>
+        <a href="{{ url_for('users.index') }}" class="btn btn-outline-secondary btn-sm"
+          style="height:36px;display:flex;align-items:center;padding:0 10px">
+          <i class="bi bi-x-lg"></i>
+        </a>
+      </div>
+    </form>
+  </div>
+
+  <!-- ── Role badge colours ───────────────────────────────────────────────────── -->
+  <style>
+  .role-badge {
+    display:inline-block;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:700;letter-spacing:.3px;
+  }
+  .role-boss_super_admin { background:#fff3cd;color:#856404;border:1px solid #ffc107; }
+  .role-super_admin      { background:#cff4fc;color:#055160;border:1px solid #0dcaf0; }
+  .role-admin            { background:#d1e7dd;color:#0a3622;border:1px solid #198754; }
+  .role-coordinator      { background:#e2d9f3;color:#432874;border:1px solid #6f42c1; }
+  .role-trainer          { background:#f8d7da;color:#58151c;border:1px solid #dc3545; }
+  .section-divider {
+    display:flex;align-items:center;gap:10px;margin:18px 0 6px;
+  }
+  .section-divider span {
+    font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text-2);white-space:nowrap;
+  }
+  .section-divider::after {
+    content:'';flex:1;height:1px;background:var(--border);
+  }
+  </style>
+
+  {% if not users %}
+  <div class="table-container">
+    <div class="text-center py-5 text-secondary">No users found.</div>
+  </div>
+  {% else %}
+
+  {% for r in role_hierarchy %}
+  {% if grouped[r] %}
+  <div class="section-divider">
+    <span class="role-badge role-{{ r }}">{{ role_display[r] }}</span>
+  </div>
+
+  <div class="table-container" style="margin-bottom:0">
+    <div class="table-responsive">
+      <table class="table" style="margin-bottom:0">
+        <thead>
+          <tr>
+            <th>User ID</th><th>Username</th><th>Full Name</th><th>Role</th>
+            <th>Status</th><th>Created</th><th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for u in grouped[r] %}
+          <tr {% if u.role == 'boss_super_admin' %}style="background:rgba(255,193,7,.06)"{% endif %}>
+            <td style="font-size:12px;color:var(--text-2)">#{{ u.id }}</td>
+            <td>
+              <strong>{{ u.username }}</strong>
+              {% if u.id == current_user.id %}<span style="font-size:10px;color:var(--accent);margin-left:4px">(you)</span>{% endif %}
+            </td>
+            <td>{{ u.full_name or '—' }}</td>
+            <td><span class="role-badge role-{{ u.role }}">{{ u.role_display }}</span></td>
+            <td><span class="badge-{{ u.status }}">{{ u.status.title() }}</span></td>
+            <td style="font-size:12px">{{ u.created_at.strftime('%d %b %Y') }}</td>
+            <td>
+              <div style="display:flex;gap:4px;flex-wrap:wrap">
+
+                {# ── Edit ── #}
+                {% if current_user.can_manage_user(u) and not (u.role == 'boss_super_admin' and u.id != current_user.id) %}
+                <a href="{{ url_for('users.edit', id=u.id) }}" class="btn-sm-action btn-edit" title="Edit">
+                  <i class="bi bi-pencil"></i>
+                </a>
+                {% endif %}
+
+                {# ── Reset Password ── #}
+                {% if current_user.has_role('boss_super_admin','super_admin') and current_user.can_manage_user(u) and u.id != current_user.id and not (u.role == 'boss_super_admin' and u.id != current_user.id) %}
+                <button type="button" class="btn-sm-action btn-view"
+                        data-bs-toggle="modal" data-bs-target="#pwdModal{{ u.id }}" title="Reset Password">
+                  <i class="bi bi-key"></i>
+                </button>
+                {% endif %}
+
+                {# ── Toggle Status ── #}
+                {% if u.id != current_user.id and u.role != 'boss_super_admin' and current_user.can_manage_user(u) %}
+                <form method="POST" action="{{ url_for('users.toggle_status', id=u.id) }}" style="margin:0">
+                  <button type="submit" class="btn-sm-action btn-{% if u.status=='active' %}delete{% else %}success-sm{% endif %}"
+                          data-confirm="Change status for {{ u.username }}?"
+                          title="{{ 'Deactivate' if u.status=='active' else 'Activate' }}">
+                    <i class="bi bi-{% if u.status=='active' %}lock{% else %}unlock{% endif %}"></i>
+                  </button>
+                </form>
+                {% endif %}
+
+                {# ── Delete ── #}
+                {% if u.role != 'boss_super_admin' and u.id != current_user.id and current_user.can_manage_user(u) %}
+                <button type="button" class="btn-sm-action btn-delete"
+                        data-bs-toggle="modal" data-bs-target="#delModal{{ u.id }}" title="Delete User">
+                  <i class="bi bi-trash"></i>
+                </button>
+                {% endif %}
+
               </div>
-              <form method="POST" action="{{ url_for('users.change_password', id=u.id) }}">
+            </td>
+          </tr>
+
+          {# ── Reset Password Modal ── #}
+          {% if current_user.has_role('boss_super_admin','super_admin') %}
+          <div class="modal fade" id="pwdModal{{ u.id }}" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered modal-sm">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h6 class="modal-title"><i class="bi bi-key me-2"></i>Reset Password — {{ u.username }}</h6>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="POST" action="{{ url_for('users.change_password', id=u.id) }}">
+                  <div class="modal-body">
+                    <label class="form-label">New Password (min 6 chars)</label>
+                    <input type="password" name="new_password" class="form-control" required placeholder="Enter new password">
+                  </div>
+                  <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn-primary-custom">Save</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+          {% endif %}
+
+          {# ── Delete Modal ── #}
+          {% if u.role != 'boss_super_admin' and u.id != current_user.id and current_user.can_manage_user(u) %}
+          <div class="modal fade" id="delModal{{ u.id }}" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered modal-sm">
+              <div class="modal-content">
+                <div class="modal-header" style="background:#fff3cd">
+                  <h6 class="modal-title text-warning"><i class="bi bi-exclamation-triangle me-2"></i>Delete User</h6>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
                 <div class="modal-body">
-                  <label class="form-label">New Password (min 6 chars)</label>
-                  <input type="password" name="new_password" class="form-control" required placeholder="Enter new password">
+                  <p style="margin-bottom:6px">
+                    <strong>Username:</strong> {{ u.username }}<br>
+                    <strong>Role:</strong> {{ u.role_display }}
+                  </p>
+                  <p class="text-danger" style="font-size:13px">This action cannot be undone.</p>
+                  <div class="form-check mt-2">
+                    <input class="form-check-input del-confirm-check" type="checkbox"
+                          id="delCheck{{ u.id }}" data-target="delBtn{{ u.id }}">
+                    <label class="form-check-label" for="delCheck{{ u.id }}" style="font-size:13px">
+                      I understand this action.
+                    </label>
+                  </div>
                 </div>
                 <div class="modal-footer">
                   <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
-                  <button type="submit" class="btn-primary-custom">Save</button>
+                  <form method="POST" action="{{ url_for('users.delete', id=u.id) }}" style="margin:0">
+                    <input type="hidden" name="confirm_delete" value="1">
+                    <button type="submit" id="delBtn{{ u.id }}" class="btn btn-danger btn-sm" disabled>Delete</button>
+                  </form>
                 </div>
-              </form>
+              </div>
             </div>
           </div>
-        </div>
-        {% endif %}
-        {% else %}
-        <tr><td colspan="8" class="text-center py-4 text-secondary">No users found.</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
+          {% endif %}
+
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
   </div>
-</div>
-{% endblock %}
+  {% endif %}
+  {% endfor %}
+  {% endif %}
+
+  {# ── Transfer Boss Super Admin Modal ── #}
+  {% if current_user.is_boss_super_admin() and super_admins_for_transfer %}
+  <div class="modal fade" id="transferModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header" style="background:#fff3cd">
+          <h6 class="modal-title"><i class="bi bi-exclamation-triangle me-2 text-warning"></i>Transfer Boss Super Admin</h6>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <form method="POST" action="{{ url_for('users.transfer_boss') }}">
+          <div class="modal-body">
+            <p><strong>Current Boss:</strong> {{ current_user.username }}</p>
+            <div class="mb-3">
+              <label class="form-label"><strong>New Boss (Super Admin):</strong></label>
+              <select name="new_boss_id" class="form-select" id="newBossSelect" required>
+                <option value="">Select a Super Admin…</option>
+                {% for sa in super_admins_for_transfer %}
+                <option value="{{ sa.id }}">{{ sa.username }} — {{ sa.full_name or '' }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <p style="font-size:13px;color:var(--text-2)">
+              This will transfer the highest privileges. The selected Super Admin
+              will become Boss Super Admin. You will become Super Admin.
+            </p>
+            <div class="form-check mt-2">
+              <input class="form-check-input del-confirm-check" type="checkbox"
+                    id="transferCheck" data-target="transferBtn">
+              <label class="form-check-label" for="transferCheck" style="font-size:13px">
+                I understand this action.
+              </label>
+            </div>
+            <input type="hidden" name="confirm_transfer" value="1">
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" id="transferBtn" class="btn btn-warning btn-sm" disabled>Transfer</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <script>
+  // Enable delete/transfer buttons only when checkbox is ticked
+  document.querySelectorAll('.del-confirm-check').forEach(function(chk) {
+    chk.addEventListener('change', function() {
+      var btn = document.getElementById(this.dataset.target);
+      if (btn) btn.disabled = !this.checked;
+    });
+  });
+  </script>
+
+  {% endblock %}
