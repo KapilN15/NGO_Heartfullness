@@ -93,12 +93,23 @@ class User(UserMixin, db.Model):
             return True
     
         # Super Admin -> Admin, Coordinator, Trainer
+         # Super Admin
         if self.role == 'super_admin':
-            return target.role in (
-                'admin',
-                'coordinator',
-                'trainer'
-            )
+        
+            # Cannot manage Boss Super Admin
+            if other.role == 'boss_super_admin':
+                return False
+        
+            # Cannot manage self
+            if self.id == other.id:
+                return False
+        
+            # Can manage all other Super Admins
+            if other.role == 'super_admin':
+                return True
+        
+            # Can manage Admin, Coordinator, Trainer
+            return True
     
         # Admin -> Coordinator, Trainer
         if self.role == 'admin':
