@@ -8,18 +8,18 @@ def seed_data():
     if User.query.count() > 0:
         return
 
-    # Create users
+    # sa1 is the one-and-only Boss Super Admin
     users_data = [
-        ('sa1', 'passsa1', 'super_admin', 'Super Admin'),
-        ('ad1', 'passad1', 'admin', 'Admin One'),
-        ('ad2', 'passad2', 'admin', 'Admin Two'),
-        ('co1', 'passco1', 'coordinator', 'Coordinator One'),
-        ('co2', 'passco2', 'coordinator', 'Coordinator Two'),
-        ('tr1', 'passtr1', 'trainer', 'Trainer One'),
-        ('tr2', 'passtr2', 'trainer', 'Trainer Two'),
-        ('tr3', 'passtr3', 'trainer', 'Trainer Three'),
-        ('tr4', 'passtr4', 'trainer', 'Trainer Four'),
-        ('tr5', 'passtr5', 'trainer', 'Trainer Five'),
+        ('sa1', 'passsa1', 'boss_super_admin', 'Boss Super Admin'),
+        ('sa2', 'passsa2', 'super_admin',      'Super Admin Two'),
+        ('sa3', 'passsa3', 'super_admin',      'Super Admin Three'),
+        ('ad1', 'passad1', 'admin',            'Admin One'),
+        ('ad2', 'passad2', 'admin',            'Admin Two'),
+        ('co1', 'passco1', 'coordinator',      'Coordinator One'),
+        ('co2', 'passco2', 'coordinator',      'Coordinator Two'),
+        ('tr1', 'passtr1', 'trainer',          'Trainer One'),
+        ('tr2', 'passtr2', 'trainer',          'Trainer Two'),
+        ('tr3', 'passtr3', 'trainer',          'Trainer Three'),
     ]
 
     created_users = []
@@ -75,7 +75,6 @@ def seed_data():
             status='active' if i < 25 else 'inactive',
             created_by=1
         )
-        # Assign 1-3 random categories to each member
         assigned_cats = random.sample(categories, random.randint(1, min(3, len(categories))))
         for cat in assigned_cats:
             m.categories.append(cat)
@@ -89,7 +88,8 @@ def seed_data():
         'Advanced Meditation', 'Teen Program', 'Health Awareness', 'Volunteer Training',
         'Stress Management', 'Mindfulness Retreat'
     ]
-    statuses = ['completed', 'completed', 'completed', 'scheduled', 'scheduled', 'draft', 'cancelled', 'completed', 'scheduled', 'draft']
+    statuses = ['completed', 'completed', 'completed', 'scheduled', 'scheduled',
+                'draft', 'cancelled', 'completed', 'scheduled', 'draft']
 
     session_objects = []
     for i, (sname, sstatus) in enumerate(zip(session_names, statuses)):
@@ -109,12 +109,9 @@ def seed_data():
         session_objects.append(s)
     db.session.commit()
 
-    # Attendance for completed sessions
     for s in session_objects:
         if s.status == 'completed':
-            # Get session category
             session_cat = s.category
-            # Load members with this category
             eligible_members = [m for m in member_objects if session_cat in m.categories and m.status == 'active'][:20]
             for m in eligible_members:
                 att = Attendance(
@@ -126,8 +123,7 @@ def seed_data():
                 db.session.add(att)
     db.session.commit()
 
-    # Audit log
-    log = AuditLog(user_id=1, username='sa1', role='super_admin',
+    log = AuditLog(user_id=1, username='sa1', role='boss_super_admin',
                    action='System Initialized', description='Database seeded with initial data.')
     db.session.add(log)
     db.session.commit()
