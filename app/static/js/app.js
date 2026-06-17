@@ -24,13 +24,54 @@ function toggleTheme() {
 }
 
 /* ── Sidebar toggle ──────────────────────────────────────── */
+const MOBILE_BREAKPOINT = 768;
+
+function isMobileViewport() {
+  return window.innerWidth <= MOBILE_BREAKPOINT;
+}
+
 function toggleSidebar() {
   const sidebar = document.getElementById('sidebar');
   const main    = document.getElementById('mainContent');
+  const overlay = document.getElementById('sidebarOverlay');
   if (!sidebar) return;
-  sidebar.classList.toggle('collapsed');
-  if (main) main.classList.toggle('sidebar-collapsed');
+
+  if (isMobileViewport()) {
+    // On phones (including vertical/portrait orientation) the sidebar is an
+    // off-canvas overlay: slide it in/out and dim the rest of the page.
+    const opening = !sidebar.classList.contains('active');
+    sidebar.classList.toggle('active', opening);
+    if (overlay) overlay.classList.toggle('active', opening);
+    document.body.classList.toggle('sidebar-open', opening);
+  } else {
+    // On tablets/desktops the sidebar stays on-canvas and just collapses
+    // to an icon rail.
+    sidebar.classList.toggle('collapsed');
+    if (main) main.classList.toggle('sidebar-collapsed');
+  }
 }
+
+function closeSidebarMobile() {
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('sidebarOverlay');
+  if (sidebar) sidebar.classList.remove('active');
+  if (overlay) overlay.classList.remove('active');
+  document.body.classList.remove('sidebar-open');
+}
+
+// Keep sidebar state sane when the viewport crosses the mobile breakpoint
+// (e.g. rotating a phone, or resizing a browser window).
+window.addEventListener('resize', function () {
+  const sidebar = document.getElementById('sidebar');
+  const main    = document.getElementById('mainContent');
+  if (!sidebar) return;
+  if (isMobileViewport()) {
+    sidebar.classList.remove('collapsed');
+    if (main) main.classList.remove('sidebar-collapsed');
+  } else {
+    closeSidebarMobile();
+  }
+});
 
 /* ── DOMContentLoaded ────────────────────────────────────── */
 document.addEventListener('DOMContentLoaded', function () {
