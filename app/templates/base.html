@@ -82,6 +82,9 @@
   </div>
 </div>
 
+<!-- Mobile sidebar backdrop -->
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebarMobile()"></div>
+
 <!-- ───────────── MAIN CONTENT ───────────── -->
 <div class="main-content" id="mainContent">
 
@@ -108,6 +111,11 @@
     </div>
 
     <div class="top-nav-actions">
+      <!-- Profile -->
+      <a href="{{ url_for('auth.profile') }}" class="theme-btn" title="My Profile">
+        <i class="bi bi-person-circle"></i>
+      </a>
+
       <!-- Theme toggle -->
       <button class="theme-btn" onclick="toggleTheme()" title="Toggle theme">
         <i id="themeIcon" class="bi bi-{% if current_user.theme == 'dark' %}sun-fill{% else %}moon-fill{% endif %}"></i>
