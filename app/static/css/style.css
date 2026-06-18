@@ -482,6 +482,59 @@ body.sidebar-open{overflow:hidden;}
 [data-theme="dark"] .form-control,
 [data-theme="dark"] .form-select {background:var(--bg-input);color:var(--text-1);border-color:var(--border);}
 
+/* ── Dark mode: button hover overrides ──────────────────── */
+[data-theme="dark"] .btn-edit:hover      {background:rgba(59,130,246,.15);color:#93C5FD;}
+[data-theme="dark"] .btn-delete:hover    {background:rgba(239,68,68,.15);color:#FCA5A5;}
+[data-theme="dark"] .btn-view:hover      {background:rgba(139,92,246,.15);color:#C4B5FD;}
+[data-theme="dark"] .btn-success-sm:hover{background:rgba(16,185,129,.15);color:#6EE7B7;}
+[data-theme="dark"] .nav-logout-btn:hover{background:rgba(220,38,38,.15);border-color:#FCA5A5;color:#FCA5A5;}
+
+/* ── Dark mode: duplicate row / badge ───────────────────── */
+[data-theme="dark"] .dup-row  {background:rgba(120,53,15,.25)!important;}
+[data-theme="dark"] .dup-badge{background:rgba(120,53,15,.40);color:#FCD34D;}
+
+/* ── Dark mode: badge-locked ─────────────────────────────── */
+[data-theme="dark"] .badge-locked{background:rgba(234,88,12,.15);color:#FDBA74;}
+
+/* ── Dark mode: table striping / hover ───────────────────── */
+[data-theme="dark"] .table-striped>tbody>tr:nth-of-type(odd)>*{--bs-table-accent-bg:rgba(255,255,255,.03);}
+[data-theme="dark"] .table-hover>tbody>tr:hover>*{--bs-table-accent-bg:rgba(255,255,255,.05);}
+
+/* ── Dark mode: card header text ─────────────────────────── */
+[data-theme="dark"] .card-header{color:var(--text-1);}
+
+/* ── Dark mode: page-header, stat label/value ────────────── */
+[data-theme="dark"] .stat-value{color:var(--text-1);}
+[data-theme="dark"] .stat-label{color:var(--text-2);}
+
+/* ── Dark mode: form label / small text ─────────────────── */
+[data-theme="dark"] .form-label{color:var(--text-1);}
+[data-theme="dark"] small, [data-theme="dark"] .text-muted{color:var(--text-2)!important;}
+[data-theme="dark"] .text-secondary{color:var(--text-2)!important;}
+
+/* ── Dark mode: select option (browser-native) ───────────── */
+[data-theme="dark"] select option{background:#1E293B;color:#F1F5F9;}
+
+/* ── Dark mode: input placeholder ───────────────────────── */
+[data-theme="dark"] .form-control::placeholder{color:var(--text-3);}
+
+/* ── Dark mode: modal body text ─────────────────────────── */
+[data-theme="dark"] .modal-body{color:var(--text-1);}
+[data-theme="dark"] .modal-body p{color:var(--text-2);}
+
+/* ── Dark mode: pagination ───────────────────────────────── */
+[data-theme="dark"] .page-link{background:var(--bg-card);border-color:var(--border);color:var(--text-1);}
+[data-theme="dark"] .page-link:hover{background:var(--accent-light);color:var(--accent);}
+[data-theme="dark"] .page-item.active .page-link{background:var(--accent);border-color:var(--accent);color:#fff;}
+[data-theme="dark"] .page-item.disabled .page-link{color:var(--text-3);background:var(--bg-card);}
+
+/* ── Dark mode: filter bar inputs / selects ─────────────── */
+[data-theme="dark"] .filter-bar .form-control,
+[data-theme="dark"] .filter-bar .form-select{background:var(--bg-input);color:var(--text-1);border-color:var(--border);}
+
+/* ── Dark mode: table empty state ───────────────────────── */
+[data-theme="dark"] .table td.text-center{color:var(--text-2);}
+
 /* ── Responsive ──────────────────────────────────────────── */
 @media(max-width:768px){
   .sidebar{transform:translateX(-100%);width:240px!important;}
