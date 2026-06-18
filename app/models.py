@@ -10,10 +10,9 @@ member_category = db.Table('member_category',
 )
 
 # Role hierarchy order (lower index = higher authority)
-ROLE_HIERARCHY = ['boss_super_admin', 'super_admin', 'admin', 'coordinator', 'trainer']
+ROLE_HIERARCHY = ['super_admin', 'admin', 'coordinator', 'trainer']
 
 ROLE_DISPLAY = {
-    'boss_super_admin': 'Boss Super Admin',
     'super_admin':      'Super Admin',
     'admin':            'Admin',
     'coordinator':      'Coordinator',
@@ -55,7 +54,6 @@ class User(UserMixin, db.Model):
 
     def can(self, permission):
         perms = {
-            'boss_super_admin': ['all'],
             'super_admin': ['all'],
             'admin': ['manage_members', 'import_csv', 'manage_sessions', 'mark_attendance',
                       'view_reports', 'manage_users', 'reopen_attendance'],
@@ -74,51 +72,31 @@ class User(UserMixin, db.Model):
     def role_rank(self):
         return role_rank(self.role)
 
-    def is_boss_super_admin(self):
-        return self.role == 'boss_super_admin'
+    def is_super_admin(self):
+        return self.role == 'super_admin'
 
     def can_manage_user(self, target):
         """Return True if self can manage target user."""
-    
-        # Boss Super Admin can manage everyone except themselves
-        if self.role == 'boss_super_admin':
-            return self.id != target.id
-    
-        # Nobody can manage Boss Super Admin
-        if target.role == 'boss_super_admin':
-            return False
-    
+
         # Cannot manage own account
         if self.id == target.id:
             return False
-    
-        # Super Admin
+
+        # Super Admin can manage everyone except themselves
         if self.role == 'super_admin':
-    
-            # Can manage other Super Admins
-            if target.role == 'super_admin':
-                return True
-    
-            # Can manage Admin, Coordinator, Trainer
-            return target.role in (
-                'admin',
-                'coordinator',
-                'trainer'
-            )
-    
+            return True
+
         # Admin
         if self.role == 'admin':
-    
             return target.role in (
                 'coordinator',
                 'trainer'
             )
-    
+
         # Coordinator
         if self.role == 'coordinator':
-    
             return target.role == 'trainer'
-    
+
         return False
 
 
