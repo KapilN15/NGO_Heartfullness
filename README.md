@@ -117,7 +117,7 @@ python run.py
 ### Default Credentials
 
 ```
-Super Admin: sa1 / passsa1
+Super Admin: sa1 / passsa1  (sa2 / passsa2 and sa3 / passsa3 are equal peers)
 Admin:       ad1 / passad1
 Coordinator: co1 / passco1
 Trainer:     tr1 / passtr1
@@ -574,7 +574,7 @@ This project is provided as-is for NGO operations management.
 - [ ] Dependencies installed (`pip install -r requirements.txt`)
 - [ ] Run application (`python run.py`)
 - [ ] Open browser (`http://localhost:5000`)
-- [ ] Login with `sa1 / passsa1`
+- [ ] Login with `sa1 / passsa1` (or `sa2`/`sa3` - all super admins are equal)
 - [ ] Explore dashboard
 - [ ] Test member creation
 - [ ] Review sample data
