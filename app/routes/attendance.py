@@ -12,7 +12,7 @@ attendance_bp = Blueprint('attendance', __name__)
 def index():
     page = request.args.get('page', 1, type=int)
     search = request.args.get('search', '')
-    status_f = request.args.get('status', 'Completed')
+    status_f = request.args.get('status', 'completed')
 
     q = Session.query
     if search:
