@@ -82,18 +82,15 @@ class User(UserMixin, db.Model):
         if self.id == target.id:
             return False
 
-        # Super Admin can manage everyone except themselves
+        # Super Admin can manage everyone (including other super_admins) except themselves
         if self.role == 'super_admin':
             return True
 
-        # Admin
+        # Admin can manage coordinator and trainer only
         if self.role == 'admin':
-            return target.role in (
-                'coordinator',
-                'trainer'
-            )
+            return target.role in ('coordinator', 'trainer')
 
-        # Coordinator
+        # Coordinator can manage trainer only
         if self.role == 'coordinator':
             return target.role == 'trainer'
 
