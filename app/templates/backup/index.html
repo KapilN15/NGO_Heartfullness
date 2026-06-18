@@ -42,6 +42,21 @@
       </div>
     </div>
   </div>
+
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header"><i class="bi bi-box-arrow-in-up me-2 text-warning"></i>Import Backup</div>
+      <div class="card-body">
+        <p style="color:var(--text-2);font-size:14px">
+          Restore members and categories from a previously exported backup ZIP file.
+          Existing records are updated; new records are added.
+        </p>
+        <button class="btn-primary-custom" data-bs-toggle="modal" data-bs-target="#importModal">
+          <i class="bi bi-upload me-1"></i> Import Backup
+        </button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- Backup History -->
@@ -94,6 +109,38 @@
           </button>
         </form>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- Import Backup Modal -->
+<div class="modal fade" id="importModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-box-arrow-in-up me-2 text-warning"></i>Import Backup</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="POST" action="{{ url_for('backup.import_backup') }}" enctype="multipart/form-data">
+        <div class="modal-body">
+          <div class="alert alert-warning" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            <strong>Note:</strong> This will restore members and categories from the selected backup ZIP.
+            Existing records are updated; missing records are added. This action cannot be undone.
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Select Backup ZIP File</label>
+            <input type="file" name="backup_file" class="form-control" accept=".zip" required>
+            <div class="form-text" style="color:var(--text-2)">Only <code>.zip</code> files exported from this system are supported.</div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-warning text-white">
+            <i class="bi bi-upload me-1"></i> Import Now
+          </button>
+        </div>
+      </form>
     </div>
   </div>
 </div>
