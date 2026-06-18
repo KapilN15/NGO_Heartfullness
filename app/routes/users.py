@@ -209,10 +209,70 @@ def delete(id):
     role = target.role
 
     try:
-        # Remove audit logs referencing this user
-        AuditLog.query.filter_by(user_id=target.id).delete()
+        from app.models import (
+            Member, Category, SessionCategory,
+            Session, Attendance, ImportHistory
+        )
 
-        # Delete the user
+        uid = target.id
+
+        # Null out all FK references to this user across every table
+        # so PostgreSQL FK constraints are satisfied before deletion.
+
+        # users.created_by (self-referential)
+        db.session.execute(
+            db.text('UPDATE users SET created_by = NULL WHERE created_by = :uid'),
+            {'uid': uid}
+        )
+
+        # members
+        db.session.execute(
+            db.text('UPDATE members SET created_by = NULL WHERE created_by = :uid'),
+            {'uid': uid}
+        )
+        db.session.execute(
+            db.text('UPDATE members SET updated_by = NULL WHERE updated_by = :uid'),
+            {'uid': uid}
+        )
+        db.session.execute(
+            db.text('UPDATE members SET deleted_by = NULL WHERE deleted_by = :uid'),
+            {'uid': uid}
+        )
+
+        # categories
+        db.session.execute(
+            db.text('UPDATE categories SET created_by = NULL WHERE created_by = :uid'),
+            {'uid': uid}
+        )
+
+        # session_categories
+        db.session.execute(
+            db.text('UPDATE session_categories SET created_by = NULL WHERE created_by = :uid'),
+            {'uid': uid}
+        )
+
+        # sessions
+        db.session.execute(
+            db.text('UPDATE sessions SET created_by = NULL WHERE created_by = :uid'),
+            {'uid': uid}
+        )
+
+        # attendance
+        db.session.execute(
+            db.text('UPDATE attendance SET marked_by = NULL WHERE marked_by = :uid'),
+            {'uid': uid}
+        )
+
+        # audit_logs
+        AuditLog.query.filter_by(user_id=uid).delete()
+
+        # import_history
+        db.session.execute(
+            db.text('UPDATE import_history SET imported_by = NULL WHERE imported_by = :uid'),
+            {'uid': uid}
+        )
+
+        # Now safe to delete the user
         db.session.delete(target)
         db.session.commit()
 
