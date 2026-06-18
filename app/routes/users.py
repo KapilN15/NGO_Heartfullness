@@ -178,32 +178,64 @@ def edit(id):
 @users_bp.route('/users/delete/<int:id>', methods=['POST'])
 @login_required
 def delete(id):
+    from app.models import AuditLog
+
     target = User.query.get_or_404(id)
 
+    # Cannot delete yourself
     if target.id == current_user.id:
-        log_action('Unauthorized Access Attempt',
-                   f'{current_user.username} tried to delete their own account')
+        log_action(
+            'Unauthorized Access Attempt',
+            f'{current_user.username} tried to delete their own account'
+        )
         flash('Cannot delete your own account.', 'danger')
         return redirect(url_for('users.index'))
 
+    # Permission check
     if not current_user.can_manage_user(target):
-        log_action('Unauthorized Access Attempt',
-                   f'{current_user.username} tried to delete {target.username}')
+        log_action(
+            'Unauthorized Access Attempt',
+            f'{current_user.username} tried to delete {target.username}'
+        )
         flash('Access Denied.', 'danger')
         return redirect(url_for('users.index'))
 
-    confirm = request.form.get('confirm_delete')
-    if confirm != '1':
+    # Confirmation check
+    if request.form.get('confirm_delete') != '1':
         flash('Please confirm the deletion.', 'warning')
         return redirect(url_for('users.index'))
 
     username = target.username
-    role     = target.role
-    db.session.delete(target)
-    db.session.commit()
-    log_action('Deleted User', f'Deleted user {username} (role: {role})',
-               target_username=username, target_role=ROLE_DISPLAY.get(role, role))
-    flash(f'User {username} has been deleted.', 'success')
+    role = target.role
+
+    try:
+        # Remove audit logs referencing this user
+        AuditLog.query.filter_by(user_id=target.id).delete()
+
+        # Delete the user
+        db.session.delete(target)
+        db.session.commit()
+
+        # Create a fresh audit log
+        log_action(
+            'Deleted User',
+            f'Deleted user {username} (role: {role})',
+            target_username=username,
+            target_role=ROLE_DISPLAY.get(role, role)
+        )
+
+        flash(f'User {username} has been deleted.', 'success')
+
+    except Exception as e:
+        db.session.rollback()
+
+        print(f'USER DELETE ERROR: {e}')
+
+        flash(
+            f'Unable to delete user. Check Render logs. Error: {str(e)}',
+            'danger'
+        )
+
     return redirect(url_for('users.index'))
 
 
