@@ -3,22 +3,22 @@
 {% block content %}
 <div class="page-header">
   <div>
-    <div class="page-title">Backup & Restore</div>
-    <div class="page-subtitle">Manage database backups and exports</div>
+    <div class="page-title">Backup &amp; Export</div>
+    <div class="page-subtitle">Create and download data backups</div>
   </div>
   <button class="btn-primary-custom" data-bs-toggle="modal" data-bs-target="#backupModal">
     <i class="bi bi-plus-lg"></i> Create Backup
   </button>
 </div>
 
-<!-- Backup & Restore Options -->
+<!-- Backup Options -->
 <div class="row g-3 mb-4">
   <div class="col-md-6">
     <div class="card">
       <div class="card-header"><i class="bi bi-cloud-arrow-down me-2 text-success"></i>Create Backup</div>
       <div class="card-body">
-        <p style="color:var(--text-secondary);font-size:14px">
-          Create a snapshot of the current database. Use for safety or before making changes.
+        <p style="color:var(--text-2);font-size:14px">
+          Create a snapshot of all data as a ZIP of CSV files. Saved on the server for download anytime.
         </p>
         <button class="btn-primary-custom" data-bs-toggle="modal" data-bs-target="#backupModal">
           <i class="bi bi-floppy me-1"></i> Start Backup
@@ -26,27 +26,13 @@
       </div>
     </div>
   </div>
-  
-  <div class="col-md-6">
-    <div class="card">
-      <div class="card-header"><i class="bi bi-cloud-arrow-up me-2 text-warning"></i>Restore Backup</div>
-      <div class="card-body">
-        <p style="color:var(--text-secondary);font-size:14px">
-          Restore database from a previous backup. This will overwrite current data.
-        </p>
-        <button class="btn-primary-custom" data-bs-toggle="modal" data-bs-target="#restoreModal">
-          <i class="bi bi-upload me-1"></i> Restore
-        </button>
-      </div>
-    </div>
-  </div>
-  
+
   <div class="col-md-6">
     <div class="card">
       <div class="card-header"><i class="bi bi-box-arrow-down me-2 text-info"></i>Export All Data</div>
       <div class="card-body">
-        <p style="color:var(--text-secondary);font-size:14px">
-          Export all data as CSV files in a ZIP archive.
+        <p style="color:var(--text-2);font-size:14px">
+          Download all data instantly as CSV files in a ZIP archive.
         </p>
         <form method="GET" action="{{ url_for('backup.export_all_csv') }}" style="margin:0">
           <button type="submit" class="btn-primary-custom">
@@ -78,7 +64,7 @@
           </td>
         </tr>
         {% else %}
-        <tr><td colspan="5" class="text-center py-3 text-secondary">No backups yet.</td></tr>
+        <tr><td colspan="5" class="text-center py-3" style="color:var(--text-2)">No backups yet.</td></tr>
         {% endfor %}
       </tbody>
     </table>
@@ -90,17 +76,15 @@
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title"><i class="bi bi-floppy-fill me-2 text-success"></i>Create Database Backup</h5>
+        <h5 class="modal-title"><i class="bi bi-floppy-fill me-2 text-success"></i>Create Backup</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
         <div class="alert alert-info" role="alert">
           <i class="bi bi-info-circle-fill me-2"></i>
-          A backup will be created with the current date and time. You can download it later.
+          A ZIP backup of all data (CSV files) will be created with the current date and time.
+          You can download it from the Backup History table.
         </div>
-        <p style="color:var(--text-secondary)">
-          Size: ~1 MB per 10,000 members
-        </p>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -110,36 +94,6 @@
           </button>
         </form>
       </div>
-    </div>
-  </div>
-</div>
-
-<!-- Restore Modal -->
-<div class="modal fade" id="restoreModal" tabindex="-1">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title"><i class="bi bi-cloud-arrow-up-fill me-2 text-warning"></i>Restore from Backup</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <form method="POST" action="{{ url_for('backup.restore') }}" enctype="multipart/form-data">
-        <div class="modal-body">
-          <div class="alert alert-warning" role="alert">
-            <i class="bi bi-exclamation-triangle-fill me-2"></i>
-            <strong>Warning:</strong> This will overwrite all current data with the backup!
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Select Backup File (.db)</label>
-            <input type="file" name="file" class="form-control" accept=".db" required>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button type="submit" class="btn btn-warning" onclick="return confirm('Are you sure? This will overwrite all current data!')">
-            <i class="bi bi-exclamation-lg me-1"></i> Restore Backup
-          </button>
-        </div>
-      </form>
     </div>
   </div>
 </div>
