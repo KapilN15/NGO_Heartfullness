@@ -15,7 +15,6 @@ def seed_data():
     
         return
 
-    # sa1 is a Super Admin
     users_data = [
         ('sa1', 'passsa1', 'super_admin',      'Super Admin One'),
         ('sa2', 'passsa2', 'super_admin',      'Super Admin Two'),
