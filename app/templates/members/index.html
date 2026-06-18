@@ -1,190 +1,295 @@
 {% extends 'base.html' %}
 {% block title %}Members - Heartfulness NGO{% endblock %}
-
 {% block content %}
 <div class="page-header">
   <div>
     <div class="page-title">Members</div>
     <div class="page-subtitle">Manage NGO members</div>
   </div>
-
   <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-
     {% if current_user.can('manage_members') %}
     <a href="{{ url_for('members.add') }}" class="btn-primary-custom">
       <i class="bi bi-plus-lg"></i> Add Member
     </a>
-
-    <a href="{{ url_for('csv_import.index') }}" class="btn btn-outline-secondary btn-sm"
-       style="height:38px;display:flex;align-items:center;gap:4px">
+    <a href="{{ url_for('csv_import.index') }}" class="btn btn-outline-secondary btn-sm" style="height:38px;display:flex;align-items:center;gap:4px">
       <i class="bi bi-upload"></i> Import CSV
     </a>
-
-    <!-- Export CSV -->
+    <!-- Export CSV dropdown -->
     <div class="dropdown">
       <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button"
               data-bs-toggle="dropdown" style="height:38px;display:flex;align-items:center;gap:4px">
         <i class="bi bi-download"></i> Export CSV
       </button>
-
       <ul class="dropdown-menu">
-        <li><a class="dropdown-item" href="{{ url_for('members.export_csv', status='all') }}">All Members</a></li>
-        <li><a class="dropdown-item" href="{{ url_for('members.export_csv', status='active') }}">Active Only</a></li>
-        <li><a class="dropdown-item" href="{{ url_for('members.export_csv', status='inactive') }}">Inactive Only</a></li>
-        <li><a class="dropdown-item" href="{{ url_for('members.export_csv', status='deleted') }}">Deleted Only</a></li>
+        <li><a class="dropdown-item" href="{{ url_for('members.export_csv', status='all') }}">
+          <i class="bi bi-people me-2"></i>All Members</a></li>
+        <li><a class="dropdown-item" href="{{ url_for('members.export_csv', status='active') }}">
+          <i class="bi bi-person-check me-2 text-success"></i>Active Only</a></li>
+        <li><a class="dropdown-item" href="{{ url_for('members.export_csv', status='inactive') }}">
+          <i class="bi bi-person-dash me-2 text-warning"></i>Inactive Only</a></li>
+        <li><a class="dropdown-item" href="{{ url_for('members.export_csv', status='deleted') }}">
+          <i class="bi bi-trash3 me-2 text-danger"></i>Deleted Only</a></li>
       </ul>
     </div>
-
-    <!-- Bulk Delete -->
-    <button type="button" class="btn btn-outline-danger btn-sm"
-            style="height:38px;display:flex;align-items:center;gap:4px"
-            onclick="openBulkDeleteModal()">
+    <button type="button" class="btn btn-outline-danger btn-sm" style="height:38px;display:flex;align-items:center;gap:4px"
+            id="bulkDeleteBtn" onclick="openBulkDeleteModal()">
       <i class="bi bi-trash3"></i> Permanent Delete
     </button>
     {% endif %}
-
-    <a href="{{ url_for('members.history') }}" class="btn btn-outline-secondary btn-sm">
-      <i class="bi bi-clock-history"></i> History
+    <a href="{{ url_for('members.history') }}" class="btn btn-outline-secondary btn-sm" style="height:38px;display:flex;align-items:center;gap:4px">
+      <i class="bi bi-clock-history"></i> Members History
     </a>
   </div>
 </div>
 
-<!-- FILTERS -->
+<!-- Filters -->
 <div class="filter-bar">
-  <form method="get" action="{{ url_for('members.index') }}" class="d-flex gap-2 flex-wrap w-100">
-
-    <input type="text" name="search" class="form-control" placeholder="Search..."
-           value="{{ search }}">
-
-    <select name="status" class="form-select">
-      <option value="">All</option>
-      <option value="active" {% if status_f=='active' %}selected{% endif %}>Active</option>
-      <option value="inactive" {% if status_f=='inactive' %}selected{% endif %}>Inactive</option>
-    </select>
-
-    <button class="btn-primary-custom" type="submit">Filter</button>
+  <form method="get" action="{{ url_for('members.index') }}" class="d-flex gap-2 flex-wrap w-100 align-items-end">
+    <div class="filter-group flex-grow-1">
+      <label>Search</label>
+      <div class="search-wrapper">
+        <i class="bi bi-search"></i>
+        <input type="text" name="search" class="form-control" placeholder="Name, ID, Mobile, Area..."
+               value="{{ search }}" style="padding-left:32px">
+      </div>
+    </div>
+    <div class="filter-group">
+      <label>Gender</label>
+      <select name="gender" class="form-select">
+        <option value="">All</option>
+        <option value="Male" {% if gender_f=='Male' %}selected{% endif %}>Male</option>
+        <option value="Female" {% if gender_f=='Female' %}selected{% endif %}>Female</option>
+        <option value="Other" {% if gender_f=='Other' %}selected{% endif %}>Other</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label>Status</label>
+      <select name="status" class="form-select">
+        <option value="">All</option>
+        <option value="active" {% if status_f=='active' %}selected{% endif %}>Active</option>
+        <option value="inactive" {% if status_f=='inactive' %}selected{% endif %}>Inactive</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label>Category</label>
+      <select name="category" class="form-select">
+        <option value="">All Categories</option>
+        {% for c in categories %}
+        <option value="{{ c.id }}" {% if category_f == c.id|string %}selected{% endif %}>{{ c.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="filter-group">
+      <label>Religion</label>
+      <select name="religion" class="form-select">
+        <option value="">All</option>
+        {% for r in religions %}
+        <option value="{{ r }}" {% if religion_f==r %}selected{% endif %}>{{ r }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div style="display:flex;gap:8px;align-items:flex-end">
+      <button type="submit" class="btn-primary-custom"><i class="bi bi-search"></i> Filter</button>
+      <a href="{{ url_for('members.index') }}" class="btn btn-outline-secondary btn-sm" style="height:38px;display:flex;align-items:center">
+        <i class="bi bi-x-lg"></i>
+      </a>
+    </div>
   </form>
 </div>
 
-<!-- TABLE -->
+<!-- Table -->
 <form id="bulkForm" method="POST" action="{{ url_for('members.bulk_delete') }}">
-  <input type="hidden" name="confirm_bulk_delete" id="confirmBulkInput">
-
+  <input type="hidden" name="confirm_bulk_delete" id="confirmBulkInput" value="">
   <div class="table-container">
-
-    <table class="table">
-      <thead>
-        <tr>
-          <th><input type="checkbox" id="selectAll"></th>
-          <th>ID</th>
-          <th>Name</th>
-          <th>Status</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-
-      <tbody>
-        {% for m in members.items %}
-        <tr>
-
-          <td>
-            <input type="checkbox" name="member_ids" value="{{ m.id }}" class="member-checkbox">
-          </td>
-
-          <td>{{ m.member_id }}</td>
-          <td><b>{{ m.full_name }}</b></td>
-
-          <td>
-            <span class="badge-{{ m.status }}">{{ m.status }}</span>
-          </td>
-
-          <td style="display:flex;gap:6px">
-
-            <!-- VIEW -->
-            <a href="{{ url_for('members.view', id=m.id) }}" class="btn-sm-action btn-view">
-              <i class="bi bi-eye"></i>
+    <div style="padding:16px 20px;border-bottom:1px solid var(--border-color);display:flex;justify-content:space-between;align-items:center">
+      <span style="font-size:14px;color:var(--text-secondary)">
+        Showing {{ members.items|length }} of {{ members.total }} members
+      </span>
+      <span id="selectedCount" style="font-size:13px;color:var(--accent-primary);font-weight:600;display:none">
+        <i class="bi bi-check2-square"></i> <span id="selectedNum">0</span> selected
+      </span>
+    </div>
+    <div class="table-responsive">
+      <table class="table">
+        <thead>
+          <tr>
+            <th style="width:40px">
+              <input type="checkbox" id="selectAll" title="Select all on this page" style="cursor:pointer">
+            </th>
+            <th>Member ID</th><th>Full Name</th><th>Gender</th><th>Age</th>
+            <th>Categories</th><th>Area</th><th>Status</th><th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for m in members.items %}
+          <tr>
+            <td>
+              <input type="checkbox" name="member_ids" value="{{ m.id }}" class="member-checkbox" style="cursor:pointer">
+            </td>
+            <td><span class="member-id-badge">{{ m.member_id }}</span></td>
+            <td><strong>{{ m.full_name }}</strong></td>
+            <td>{{ m.gender or '-' }}</td>
+            <td>{{ m.age or '-' }}</td>
+            <td>
+              {% if m.categories %}
+                <div style="display:flex;gap:4px;flex-wrap:wrap">
+                  {% for cat in m.categories %}
+                  <span style="background:var(--accent-light);color:var(--accent-primary);padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600">{{ cat.name }}</span>
+                  {% endfor %}
+                </div>
+              {% else %}
+                <span style="color:var(--text-muted);font-size:12px">-</span>
+              {% endif %}
+            </td>
+            <td>{{ m.area or '-' }}</td>
+            <td><span class="badge-{{ m.status }}">{{ m.status.title() }}</span></td>
+            <td>
+              <div style="display:flex;gap:4px">
+                <a href="{{ url_for('members.view', id=m.id) }}" class="btn-sm-action btn-view">
+                  <i class="bi bi-eye"></i>
+                </a>
+                {% if current_user.can('manage_members') %}
+                <a href="{{ url_for('members.edit', id=m.id) }}" class="btn-sm-action btn-edit">
+                  <i class="bi bi-pencil"></i>
+                </a>
+                {% if m.status == 'active' %}
+                <form method="POST" action="{{ url_for('members.delete', id=m.id) }}" style="margin:0">
+                  <button type="submit" class="btn-sm-action btn-delete"
+                          data-confirm="Deactivate this member?">
+                    <i class="bi bi-person-dash"></i>
+                  </button>
+                </form>
+                {% endif %}
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="9" class="text-center py-4 text-secondary">No members found.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <!-- Pagination -->
+    {% if members.pages > 1 %}
+    <div style="padding:16px 20px;border-top:1px solid var(--border-color)">
+      <nav>
+        <ul class="pagination pagination-sm mb-0">
+          <li class="page-item {% if not members.has_prev %}disabled{% endif %}">
+            <a class="page-link" href="{{ url_for('members.index', page=members.prev_num, search=search, gender=gender_f, status=status_f, category=category_f, religion=religion_f) }}">
+              <i class="bi bi-chevron-left"></i>
             </a>
-
-            <!-- EDIT -->
-            {% if current_user.can('manage_members') %}
-            <a href="{{ url_for('members.edit', id=m.id) }}" class="btn-sm-action btn-edit">
-              <i class="bi bi-pencil"></i>
-            </a>
-
-            <!-- ⭐ SINGLE DEACTIVATE (FIX ADDED HERE) -->
-            {% if m.status == 'active' %}
-            <a href="{{ url_for('members.delete', id=m.id) }}"
-               class="btn-sm-action btn-warning"
-               data-confirm="Deactivate this member?">
-              <i class="bi bi-person-dash"></i>
-            </a>
+          </li>
+          {% for p in members.iter_pages() %}
+            {% if p %}
+            <li class="page-item {% if p == members.page %}active{% endif %}">
+              <a class="page-link" href="{{ url_for('members.index', page=p, search=search, gender=gender_f, status=status_f, category=category_f, religion=religion_f) }}">{{ p }}</a>
+            </li>
+            {% else %}
+            <li class="page-item disabled"><span class="page-link">…</span></li>
             {% endif %}
-
-            {% endif %}
-
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+          {% endfor %}
+          <li class="page-item {% if not members.has_next %}disabled{% endif %}">
+            <a class="page-link" href="{{ url_for('members.index', page=members.next_num, search=search, gender=gender_f, status=status_f, category=category_f, religion=religion_f) }}">
+              <i class="bi bi-chevron-right"></i>
+            </a>
+          </li>
+        </ul>
+      </nav>
+    </div>
+    {% endif %}
   </div>
 </form>
 
-<!-- BULK DELETE MODAL (UNCHANGED) -->
-<div id="bulkDeleteModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;">
-  <div style="background:#fff;padding:20px;max-width:450px;margin:10% auto;border-radius:10px">
-
-    <h5>Permanent Delete</h5>
-    <p>Selected: <span id="modalCount">0</span></p>
-
-    <label>
-      <input type="checkbox" id="bulkConfirmCheck" onchange="toggleBulkDeleteBtn()">
-      I confirm deletion
-    </label>
-
-    <div style="margin-top:15px;display:flex;gap:10px">
-      <button type="button" onclick="closeBulkDeleteModal()">Cancel</button>
-      <button type="button" id="confirmBulkBtn" onclick="submitBulkDelete()" disabled>
-        Delete
+<!-- Bulk Delete Confirmation Modal -->
+<div id="bulkDeleteModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center">
+  <div style="background:var(--bg-card);border-radius:12px;padding:32px;max-width:480px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3)">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
+      <div style="width:48px;height:48px;background:#fff3cd;border-radius:50%;display:flex;align-items:center;justify-content:center">
+        <i class="bi bi-exclamation-triangle-fill" style="color:#f59e0b;font-size:22px"></i>
+      </div>
+      <div>
+        <div style="font-size:18px;font-weight:700;color:var(--text-primary)">⚠ Permanent Delete</div>
+      </div>
+    </div>
+    <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:16px;margin-bottom:20px">
+      <div style="font-size:14px;color:#991b1b;margin-bottom:8px">
+        <strong>Selected Members: <span id="modalCount">0</span></strong>
+      </div>
+      <div style="font-size:13px;color:#7f1d1d">
+        This action will permanently delete all selected members.<br>
+        <strong>This action cannot be undone.</strong>
+      </div>
+    </div>
+    <div style="margin-bottom:20px">
+      <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer">
+        <input type="checkbox" id="bulkConfirmCheck" onchange="toggleBulkDeleteBtn()" style="margin-top:3px;cursor:pointer">
+        <span style="font-size:13px;color:var(--text-primary)">
+          I understand that all <strong><span id="modalCount2">0</span> selected members</strong> will be permanently deleted.
+        </span>
+      </label>
+    </div>
+    <div style="display:flex;gap:12px;justify-content:flex-end">
+      <button type="button" onclick="closeBulkDeleteModal()" class="btn btn-outline-secondary">Cancel</button>
+      <button type="button" id="confirmBulkBtn" onclick="submitBulkDelete()"
+              disabled
+              style="background:#dc2626;color:#fff;border:none;padding:8px 20px;border-radius:8px;font-weight:600;cursor:not-allowed;opacity:0.5">
+        <i class="bi bi-trash3"></i> Delete All
       </button>
     </div>
-
   </div>
 </div>
 
 <script>
-const checkboxes = document.querySelectorAll('.member-checkbox');
-const selectAll = document.getElementById('selectAll');
-
-selectAll.addEventListener('change', () => {
-  checkboxes.forEach(cb => cb.checked = selectAll.checked);
+// Checkbox selection logic
+document.getElementById('selectAll').addEventListener('change', function() {
+  document.querySelectorAll('.member-checkbox').forEach(cb => cb.checked = this.checked);
+  updateSelectedCount();
 });
-
-function openBulkDeleteModal() {
+document.querySelectorAll('.member-checkbox').forEach(cb => {
+  cb.addEventListener('change', updateSelectedCount);
+});
+function updateSelectedCount() {
   const count = document.querySelectorAll('.member-checkbox:checked').length;
-
-  if (count === 0) {
-    alert("Select members first");
-    return;
-  }
-
-  document.getElementById('modalCount').innerText = count;
-  document.getElementById('bulkDeleteModal').style.display = 'block';
+  const el = document.getElementById('selectedCount');
+  document.getElementById('selectedNum').textContent = count;
+  el.style.display = count > 0 ? 'inline' : 'none';
+  document.getElementById('selectAll').indeterminate =
+    count > 0 && count < document.querySelectorAll('.member-checkbox').length;
 }
 
+// Bulk delete modal
+function openBulkDeleteModal() {
+  const count = document.querySelectorAll('.member-checkbox:checked').length;
+  if (count === 0) {
+    alert('Please select at least one member to delete.');
+    return;
+  }
+  document.getElementById('modalCount').textContent = count;
+  document.getElementById('modalCount2').textContent = count;
+  document.getElementById('bulkConfirmCheck').checked = false;
+  document.getElementById('confirmBulkBtn').disabled = true;
+  document.getElementById('confirmBulkBtn').style.opacity = '0.5';
+  document.getElementById('confirmBulkBtn').style.cursor = 'not-allowed';
+  document.getElementById('bulkDeleteModal').style.display = 'flex';
+}
 function closeBulkDeleteModal() {
   document.getElementById('bulkDeleteModal').style.display = 'none';
 }
-
 function toggleBulkDeleteBtn() {
-  document.getElementById('confirmBulkBtn').disabled =
-    !document.getElementById('bulkConfirmCheck').checked;
+  const checked = document.getElementById('bulkConfirmCheck').checked;
+  const btn = document.getElementById('confirmBulkBtn');
+  btn.disabled = !checked;
+  btn.style.opacity = checked ? '1' : '0.5';
+  btn.style.cursor = checked ? 'pointer' : 'not-allowed';
 }
-
 function submitBulkDelete() {
-  document.getElementById('confirmBulkInput').value = "1";
+  document.getElementById('confirmBulkInput').value = '1';
   document.getElementById('bulkForm').submit();
 }
+// Close modal on backdrop click
+document.getElementById('bulkDeleteModal').addEventListener('click', function(e) {
+  if (e.target === this) closeBulkDeleteModal();
+});
 </script>
-
 {% endblock %}
