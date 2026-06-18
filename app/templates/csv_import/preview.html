@@ -59,9 +59,9 @@
   <div style="padding:12px 18px;border-bottom:1px solid var(--border);font-size:13px;color:var(--text-2)">
     Showing all {{ total }} rows — duplicates highlighted in orange, invalid in red
   </div>
-  <div class="table-responsive">
+  <div class="table-responsive" style="max-height:480px;overflow-y:auto;">
     <table class="table" style="font-size:12px">
-      <thead>
+      <thead style="position:sticky;top:0;z-index:1;">
         <tr>
           <th>#</th><th>Name</th><th>Gender</th><th>Age</th><th>Religion</th>
           <th>Mobile</th><th>Area</th><th>Join Date</th><th>Status</th>
