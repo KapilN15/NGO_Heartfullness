@@ -159,6 +159,92 @@ def restore():
     return redirect(url_for('backup.index'))
 
 
+@backup_bp.route('/backup/import', methods=['POST'])
+@login_required
+def import_backup():
+    """Import a previously exported backup ZIP (CSV files) to restore data."""
+    if not current_user.has_role('super_admin'):
+        flash('Access denied.', 'danger')
+        return redirect(url_for('dashboard.index'))
+
+    uploaded = request.files.get('backup_file')
+    if not uploaded or not uploaded.filename:
+        flash('No file selected.', 'warning')
+        return redirect(url_for('backup.index'))
+
+    if not uploaded.filename.lower().endswith('.zip'):
+        flash('Please upload a valid .zip backup file.', 'danger')
+        return redirect(url_for('backup.index'))
+
+    try:
+        buf = io.BytesIO(uploaded.read())
+        with zipfile.ZipFile(buf, 'r') as zf:
+            names = zf.namelist()
+
+            # ── Members ──────────────────────────────────────────────────────
+            if 'members.csv' in names:
+                reader = csv.DictReader(io.StringIO(zf.read('members.csv').decode('utf-8')))
+                imported_members = 0
+                for row in reader:
+                    member_id = row.get('member_id', '').strip()
+                    if not member_id:
+                        continue
+                    existing = Member.query.filter_by(member_id=member_id).first()
+                    if existing:
+                        # Update fields
+                        existing.full_name    = row.get('full_name', existing.full_name)
+                        existing.gender       = row.get('gender', existing.gender)
+                        existing.age          = row.get('age') or existing.age
+                        existing.religion     = row.get('religion', existing.religion)
+                        existing.mobile_number= row.get('mobile_number', existing.mobile_number)
+                        existing.area         = row.get('area', existing.area)
+                        existing.status       = row.get('status', existing.status)
+                    else:
+                        m = Member(
+                            member_id=member_id,
+                            full_name=row.get('full_name', ''),
+                            gender=row.get('gender', ''),
+                            age=row.get('age') or None,
+                            religion=row.get('religion', ''),
+                            mobile_number=row.get('mobile_number', ''),
+                            area=row.get('area', ''),
+                            status=row.get('status', 'active'),
+                        )
+                        db.session.add(m)
+                        imported_members += 1
+                db.session.commit()
+
+            # ── Categories ───────────────────────────────────────────────────
+            if 'categories.csv' in names:
+                from app.models import Category
+                reader = csv.DictReader(io.StringIO(zf.read('categories.csv').decode('utf-8')))
+                for row in reader:
+                    name = row.get('name', '').strip()
+                    if not name:
+                        continue
+                    existing = Category.query.filter_by(name=name).first()
+                    if not existing:
+                        c = Category(
+                            name=name,
+                            description=row.get('description', ''),
+                            status=row.get('status', 'active'),
+                        )
+                        db.session.add(c)
+                db.session.commit()
+
+        log_action('Import Backup', f'Backup imported from file: {uploaded.filename}')
+        flash(f'Backup imported successfully from "{uploaded.filename}". '
+              'Members and categories have been restored/updated.', 'success')
+
+    except zipfile.BadZipFile:
+        flash('Invalid ZIP file. Please upload a valid backup.', 'danger')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Import failed: {str(e)}', 'danger')
+
+    return redirect(url_for('backup.index'))
+
+
 @backup_bp.route('/backup/export-csv')
 @login_required
 def export_all_csv():
