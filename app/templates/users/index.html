@@ -15,13 +15,6 @@
         <i class="bi bi-journal-text"></i> User Logs
       </a>
       {% endif %}
-      {% if current_user.is_boss_super_admin() and super_admins_for_transfer %}
-      <button type="button" class="btn btn-outline-warning btn-sm"
-              data-bs-toggle="modal" data-bs-target="#transferModal"
-              style="height:36px;display:flex;align-items:center;gap:6px">
-        <i class="bi bi-arrow-left-right"></i> Transfer Ownership
-      </button>
-      {% endif %}
       {% if allowed_create_roles %}
       <a href="{{ url_for('users.add') }}" class="btn-primary-custom">
         <i class="bi bi-plus-lg"></i> Add User
@@ -252,50 +245,6 @@
   </div>
   {% endif %}
   {% endfor %}
-  {% endif %}
-
-  {# ── Transfer Boss Super Admin Modal ── #}
-  {% if current_user.is_boss_super_admin() and super_admins_for_transfer %}
-  <div class="modal fade" id="transferModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content">
-        <div class="modal-header" style="background:#fff3cd">
-          <h6 class="modal-title"><i class="bi bi-exclamation-triangle me-2 text-warning"></i>Transfer Boss Super Admin</h6>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
-        <form method="POST" action="{{ url_for('users.transfer_boss') }}">
-          <div class="modal-body">
-            <p><strong>Current Boss:</strong> {{ current_user.username }}</p>
-            <div class="mb-3">
-              <label class="form-label"><strong>New Boss (Super Admin):</strong></label>
-              <select name="new_boss_id" class="form-select" id="newBossSelect" required>
-                <option value="">Select a Super Admin…</option>
-                {% for sa in super_admins_for_transfer %}
-                <option value="{{ sa.id }}">{{ sa.username }} — {{ sa.full_name or '' }}</option>
-                {% endfor %}
-              </select>
-            </div>
-            <p style="font-size:13px;color:var(--text-2)">
-              This will transfer the highest privileges. The selected Super Admin
-              will become Boss Super Admin. You will become Super Admin.
-            </p>
-            <div class="form-check mt-2">
-              <input class="form-check-input del-confirm-check" type="checkbox"
-                    id="transferCheck" data-target="transferBtn">
-              <label class="form-check-label" for="transferCheck" style="font-size:13px">
-                I understand this action.
-              </label>
-            </div>
-            <input type="hidden" name="confirm_transfer" value="1">
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
-            <button type="submit" id="transferBtn" class="btn btn-warning btn-sm" disabled>Transfer</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
   {% endif %}
 
   <script>
