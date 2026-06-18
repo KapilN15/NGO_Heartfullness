@@ -36,11 +36,17 @@ def seed_data():
         created_users.append(u)
     db.session.commit()
 
+    # Super admins are peers with equal standing - demo data ownership is
+    # rotated evenly across all three so none of them looks like the
+    # "primary" or "founder" account.
+    super_admin_ids = [created_users[0].id, created_users[1].id, created_users[2].id]
+
     # Member Categories
     cat_names = ['Meditation', 'Youth Program', 'Wellness Session', 'Community Service', 'Leadership Training']
     categories = []
-    for cn in cat_names:
-        cat = Category(name=cn, description=f'{cn} activities', status='active', created_by=1)
+    for i, cn in enumerate(cat_names):
+        cat = Category(name=cn, description=f'{cn} activities', status='active',
+                        created_by=super_admin_ids[i % len(super_admin_ids)])
         db.session.add(cat)
         categories.append(cat)
     db.session.commit()
@@ -48,8 +54,9 @@ def seed_data():
     # Session categories
     session_cats = ['Meditation', 'Youth Program', 'Wellness Session', 'Community Service', 'Leadership Training']
     cat_objects = []
-    for c in session_cats:
-        cat = SessionCategory(name=c, description=f'{c} activities', status='active', created_by=1)
+    for i, c in enumerate(session_cats):
+        cat = SessionCategory(name=c, description=f'{c} activities', status='active',
+                               created_by=super_admin_ids[i % len(super_admin_ids)])
         db.session.add(cat)
         cat_objects.append(cat)
     db.session.commit()
@@ -79,7 +86,7 @@ def seed_data():
             area=random.choice(areas),
             join_date=date.today() - timedelta(days=random.randint(0, 365)),
             status='active' if i < 25 else 'inactive',
-            created_by=1
+            created_by=super_admin_ids[i % len(super_admin_ids)]
         )
         assigned_cats = random.sample(categories, random.randint(1, min(3, len(categories))))
         for cat in assigned_cats:
@@ -109,7 +116,7 @@ def seed_data():
             venue=random.choice(['Main Hall', 'Community Center', 'Park', 'School Ground']),
             status=sstatus,
             attendance_locked=(sstatus == 'completed'),
-            created_by=1
+            created_by=super_admin_ids[i % len(super_admin_ids)]
         )
         db.session.add(s)
         session_objects.append(s)
@@ -119,17 +126,17 @@ def seed_data():
         if s.status == 'completed':
             session_cat = s.category
             eligible_members = [m for m in member_objects if session_cat in m.categories and m.status == 'active'][:20]
-            for m in eligible_members:
+            for j, m in enumerate(eligible_members):
                 att = Attendance(
                     session_id=s.id,
                     member_id=m.id,
                     status=random.choice(['present', 'present', 'present', 'absent']),
-                    marked_by=1
+                    marked_by=super_admin_ids[j % len(super_admin_ids)]
                 )
                 db.session.add(att)
     db.session.commit()
 
-    log = AuditLog(user_id=1, username='sa1', role='super_admin',
+    log = AuditLog(user_id=None, username='system', role='system',
                    action='System Initialized', description='Database seeded with initial data.')
     db.session.add(log)
     db.session.commit()
