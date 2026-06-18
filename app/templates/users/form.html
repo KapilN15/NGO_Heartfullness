@@ -11,12 +11,7 @@
   </a>
 </div>
 
-{% if user and user.role == 'boss_super_admin' %}
-<div class="alert alert-warning d-flex align-items-center gap-2" role="alert" style="margin-bottom:16px">
-  <i class="bi bi-shield-fill-exclamation"></i>
-  <span>Role and status cannot be changed for this account.</span>
-</div>
-{% elif user and user.id == current_user.id %}
+{% if user and user.id == current_user.id %}
 <div class="alert alert-warning d-flex align-items-center gap-2" role="alert" style="margin-bottom:16px">
   <i class="bi bi-shield-fill-exclamation"></i>
   <span>You are editing your <strong>own account</strong>. Role and status cannot be changed by yourself.</span>
@@ -52,10 +47,10 @@
              value="{{ user.email if user else '' }}" placeholder="Email address">
     </div>
 
-    {# Role — show dropdown only when allowed; for boss_super_admin or self editing own account, role is locked #}
+    {# Role — show dropdown only when allowed; for self editing own account, role is locked #}
     <div class="mb-3">
       <label class="form-label">Role</label>
-      {% if user and (user.role == 'boss_super_admin' or user.id == current_user.id) %}
+      {% if user and user.id == current_user.id %}
         <input type="text" class="form-control" value="{{ user.role_display }}" readonly
                style="background:var(--bg-primary);font-weight:600">
       {% else %}
@@ -70,7 +65,7 @@
       {% endif %}
     </div>
 
-    {% if user and user.role != 'boss_super_admin' and user.id != current_user.id %}
+    {% if user and user.id != current_user.id %}
     <div class="mb-3">
       <label class="form-label">Status</label>
       <select name="status" class="form-select">
