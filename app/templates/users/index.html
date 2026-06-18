@@ -9,7 +9,7 @@
       <div class="page-subtitle">Manage staff accounts and access control</div>
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
-      {% if current_user.has_role('boss_super_admin','super_admin','admin') %}
+      {% if current_user.has_role('super_admin','admin') %}
       <a href="{{ url_for('users.logs') }}" class="btn btn-outline-secondary btn-sm"
         style="height:36px;display:flex;align-items:center;gap:6px">
         <i class="bi bi-journal-text"></i> User Logs
@@ -43,16 +43,9 @@
 
           {% for r in role_hierarchy %}
 
-            {% if r != 'boss_super_admin' %}
-
-            <option value="{{ r }}"
-              {% if role_f == r %}selected{% endif %}>
-
+            <option value="{{ r }}" {% if role_f == r %}selected{% endif %}>
               {{ role_display[r] }}
-
             </option>
-
-            {% endif %}
 
           {% endfor %}
 
@@ -89,7 +82,6 @@
   .role-badge {
     display:inline-block;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:700;letter-spacing:.3px;
   }
-  .role-boss_super_admin { background:#fff3cd;color:#856404;border:1px solid #ffc107; }
   .role-super_admin      { background:#cff4fc;color:#055160;border:1px solid #0dcaf0; }
   .role-admin            { background:#d1e7dd;color:#0a3622;border:1px solid #198754; }
   .role-coordinator      { background:#e2d9f3;color:#432874;border:1px solid #6f42c1; }
@@ -128,7 +120,7 @@
         </thead>
         <tbody>
           {% for u in grouped[r] %}
-          <tr {% if u.role == 'boss_super_admin' %}style="background:rgba(255,193,7,.06)"{% endif %}>
+          <tr>
             <td style="font-size:12px;color:var(--text-2)">#{{ u.id }}</td>
             <td>
               <strong>{{ u.username }}</strong>
@@ -142,14 +134,14 @@
               <div style="display:flex;gap:4px;flex-wrap:wrap">
 
                 {# ── Edit ── #}
-                {% if current_user.can_manage_user(u) and not (u.role == 'boss_super_admin' and u.id != current_user.id) %}
+                {% if current_user.can_manage_user(u) %}
                 <a href="{{ url_for('users.edit', id=u.id) }}" class="btn-sm-action btn-edit" title="Edit">
                   <i class="bi bi-pencil"></i>
                 </a>
                 {% endif %}
 
                 {# ── Reset Password ── #}
-                {% if current_user.has_role('boss_super_admin','super_admin') and current_user.can_manage_user(u) and u.id != current_user.id and not (u.role == 'boss_super_admin' and u.id != current_user.id) %}
+                {% if current_user.has_role('super_admin') and current_user.can_manage_user(u) and u.id != current_user.id %}
                 <button type="button" class="btn-sm-action btn-view"
                         data-bs-toggle="modal" data-bs-target="#pwdModal{{ u.id }}" title="Reset Password">
                   <i class="bi bi-key"></i>
@@ -157,7 +149,7 @@
                 {% endif %}
 
                 {# ── Toggle Status ── #}
-                {% if u.id != current_user.id and u.role != 'boss_super_admin' and current_user.can_manage_user(u) %}
+                {% if u.id != current_user.id and current_user.can_manage_user(u) %}
                 <form method="POST" action="{{ url_for('users.toggle_status', id=u.id) }}" style="margin:0">
                   <button type="submit" class="btn-sm-action btn-{% if u.status=='active' %}delete{% else %}success-sm{% endif %}"
                           data-confirm="Change status for {{ u.username }}?"
@@ -168,7 +160,7 @@
                 {% endif %}
 
                 {# ── Delete ── #}
-                {% if u.role != 'boss_super_admin' and u.id != current_user.id and current_user.can_manage_user(u) %}
+                {% if u.id != current_user.id and current_user.can_manage_user(u) %}
                 <button type="button" class="btn-sm-action btn-delete"
                         data-bs-toggle="modal" data-bs-target="#delModal{{ u.id }}" title="Delete User">
                   <i class="bi bi-trash"></i>
@@ -180,7 +172,7 @@
           </tr>
 
           {# ── Reset Password Modal ── #}
-          {% if current_user.has_role('boss_super_admin','super_admin') %}
+          {% if current_user.has_role('super_admin') %}
           <div class="modal fade" id="pwdModal{{ u.id }}" tabindex="-1">
             <div class="modal-dialog modal-dialog-centered modal-sm">
               <div class="modal-content">
@@ -204,7 +196,7 @@
           {% endif %}
 
           {# ── Delete Modal ── #}
-          {% if u.role != 'boss_super_admin' and u.id != current_user.id and current_user.can_manage_user(u) %}
+          {% if u.id != current_user.id and current_user.can_manage_user(u) %}
           <div class="modal fade" id="delModal{{ u.id }}" tabindex="-1">
             <div class="modal-dialog modal-dialog-centered modal-sm">
               <div class="modal-content">
