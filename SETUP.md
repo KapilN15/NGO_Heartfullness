@@ -102,9 +102,10 @@ Example: `http://192.168.1.100:5000`
 
 The system comes pre-populated with sample data and test accounts:
 
-### Super Admin (Full Access)
-- **Username:** `sa1`
-- **Password:** `passsa1`
+### Super Admins (Full Access — all three are equal peers, no one is "primary")
+- **Username:** `sa1` / **Password:** `passsa1`
+- **Username:** `sa2` / **Password:** `passsa2`
+- **Username:** `sa3` / **Password:** `passsa3`
 
 ### Admins
 - **Username:** `ad1` / **Password:** `passad1`
