@@ -15,9 +15,9 @@ def seed_data():
     
         return
 
-    # sa1 is the one-and-only Boss Super Admin
+    # sa1 is a Super Admin
     users_data = [
-        ('sa1', 'passsa1', 'boss_super_admin', 'Boss Super Admin'),
+        ('sa1', 'passsa1', 'super_admin',      'Super Admin One'),
         ('sa2', 'passsa2', 'super_admin',      'Super Admin Two'),
         ('sa3', 'passsa3', 'super_admin',      'Super Admin Three'),
         ('ad1', 'passad1', 'admin',            'Admin One'),
@@ -130,7 +130,7 @@ def seed_data():
                 db.session.add(att)
     db.session.commit()
 
-    log = AuditLog(user_id=1, username='sa1', role='boss_super_admin',
+    log = AuditLog(user_id=1, username='sa1', role='super_admin',
                    action='System Initialized', description='Database seeded with initial data.')
     db.session.add(log)
     db.session.commit()
