@@ -85,10 +85,12 @@ def logout():
     return redirect(url_for('auth.login'))
 
 
-@auth_bp.route('/set-theme', methods=['POST'])
+@auth_bp.route('/set-theme', methods=['GET', 'POST'])
 @login_required
 def set_theme():
-    theme = request.form.get('theme', 'light')
+    theme = request.args.get('theme') or request.form.get('theme', 'light')
+    if theme not in ('light', 'dark'):
+        theme = 'light'
     current_user.theme = theme
     db.session.commit()
     return {'status': 'ok'}
