@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify
 from flask_login import login_required, current_user
-from app.models import Session, Member, Attendance, SessionCategory
+from app.models import Session, Member, Attendance
 from app import db
 from app.utils.audit import log_action
 
@@ -38,15 +38,9 @@ def mark(session_id):
         return redirect(url_for('attendance.index'))
 
     # Load members based on session category
-    session_cat = s.category
-    if session_cat:
-        # Get members who have this category AND are active
-        from app.models import Category
-        cat = Category.query.filter_by(name=session_cat.name).first()
-        if cat:
-            members = cat.members.filter_by(status='active').order_by(Member.full_name).all()
-        else:
-            members = []
+    category = s.category
+    if category:
+        members = category.members.filter_by(status='active').order_by(Member.full_name).all()
     else:
         # Fallback: if no category, load all active members
         members = Member.query.filter_by(status='active').order_by(Member.full_name).all()
