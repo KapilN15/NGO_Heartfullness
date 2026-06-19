@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
 from datetime import datetime, date
-from app.models import Session, SessionCategory
+from app.models import Session, Category, SessionCategory
 from app import db
 from app.utils.audit import log_action
 
@@ -38,7 +38,7 @@ def index():
     if cat_f:    q = q.filter_by(category_id=int(cat_f))
 
     sessions   = q.order_by(Session.date.desc()).paginate(page=page, per_page=15, error_out=False)
-    categories = SessionCategory.query.filter_by(status='active').all()
+    categories = Category.query.filter_by(status='active').all()
     return render_template('sessions/index.html', sessions=sessions, search=search,
                            status_f=status_f, cat_f=cat_f, categories=categories)
 
@@ -49,7 +49,7 @@ def add():
     if not current_user.can('manage_sessions'):
         flash('Access denied.', 'danger')
         return redirect(url_for('sessions.index'))
-    categories = SessionCategory.query.filter_by(status='active').all()
+    categories = Category.query.filter_by(status='active').all()
 
     if request.method == 'POST':
         session_name = request.form.get('session_name', '').strip()
@@ -83,7 +83,7 @@ def edit(id):
         flash('Access denied.', 'danger')
         return redirect(url_for('sessions.index'))
     s          = Session.query.get_or_404(id)
-    categories = SessionCategory.query.filter_by(status='active').all()
+    categories = Category.query.filter_by(status='active').all()
 
     if request.method == 'POST':
         s.session_name = request.form.get('session_name', '').strip()
