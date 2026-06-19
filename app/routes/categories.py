@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify
 from flask_login import login_required, current_user
 from sqlalchemy import func
-from app.models import Category, Member, Session, Attendance, SessionCategory
+from app.models import Category, Member, Session, Attendance
 from app import db
 from app.utils.audit import log_action
 
@@ -79,8 +79,8 @@ def view(id):
     
     # Calculate attendance percentage
     # Find sessions where category members attended
-    sessions_query = db.session.query(Session).join(SessionCategory).filter(
-        SessionCategory.name == cat.name, Session.status == 'completed'
+    sessions_query = Session.query.filter_by(
+        category_id=cat.id, status='completed'
     ).all()
     
     total_attendance = 0
