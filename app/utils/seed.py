@@ -1,137 +1,242 @@
-from datetime import date, timedelta
-import random
-from app.models import User, Member, Category, Session, Attendance, AuditLog
+from datetime import datetime
+from flask_login import UserMixin
+from werkzeug.security import generate_password_hash, check_password_hash
 from app import db
 
+# Association table for Member-Category many-to-many relationship
+member_category = db.Table('member_category',
+    db.Column('member_id', db.Integer, db.ForeignKey('members.id'), primary_key=True),
+    db.Column('category_id', db.Integer, db.ForeignKey('categories.id'), primary_key=True)
+)
 
-def seed_data():
+# Role hierarchy order (lower index = higher authority)
+ROLE_HIERARCHY = ['super_admin', 'admin', 'coordinator', 'trainer']
+
+ROLE_DISPLAY = {
+    'super_admin':      'Super Admin',
+    'admin':            'Admin',
+    'coordinator':      'Coordinator',
+    'trainer':          'Trainer',
+}
+
+
+def role_rank(role):
+    """Return numeric rank; lower = more powerful. Unknown roles get max rank."""
     try:
-    
-        if User.query.first():
-    
-            return
-    
-    except Exception:
-    
-        return
+        return ROLE_HIERARCHY.index(role)
+    except ValueError:
+        return len(ROLE_HIERARCHY)
 
-    users_data = [
-        ('sa1', 'passsa1', 'super_admin',      'Super Admin One'),
-        ('sa2', 'passsa2', 'super_admin',      'Super Admin Two'),
-        ('sa3', 'passsa3', 'super_admin',      'Super Admin Three'),
-        ('ad1', 'passad1', 'admin',            'Admin One'),
-        ('ad2', 'passad2', 'admin',            'Admin Two'),
-        ('co1', 'passco1', 'coordinator',      'Coordinator One'),
-        ('co2', 'passco2', 'coordinator',      'Coordinator Two'),
-        ('tr1', 'passtr1', 'trainer',          'Trainer One'),
-        ('tr2', 'passtr2', 'trainer',          'Trainer Two'),
-        ('tr3', 'passtr3', 'trainer',          'Trainer Three'),
-    ]
 
-    created_users = []
-    for username, password, role, full_name in users_data:
-        u = User(username=username, role=role, full_name=full_name, status='active')
-        u.set_password(password)
-        db.session.add(u)
-        created_users.append(u)
-    db.session.commit()
+class User(UserMixin, db.Model):
+    __tablename__ = 'users'
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(50), unique=True, nullable=False)
+    password_hash = db.Column(db.String(255), nullable=False)
+    role = db.Column(db.String(20), nullable=False)
+    full_name = db.Column(db.String(100))
+    email = db.Column(db.String(100))
+    status = db.Column(db.String(10), default='active')  # active, inactive
+    theme = db.Column(db.String(10), default='light')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    failed_login_attempts = db.Column(db.Integer, default=0)
+    account_locked_until = db.Column(db.DateTime, nullable=True)
 
-    # Super admins are peers with equal standing - demo data ownership is
-    # rotated evenly across all three so none of them looks like the
-    # "primary" or "founder" account.
-    super_admin_ids = [created_users[0].id, created_users[1].id, created_users[2].id]
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
 
-    # Member Categories
-    cat_names = ['Meditation', 'Youth Program', 'Wellness Session', 'Community Service', 'Leadership Training']
-    categories = []
-    for i, cn in enumerate(cat_names):
-        cat = Category(name=cn, description=f'{cn} activities', status='active',
-                        created_by=super_admin_ids[i % len(super_admin_ids)])
-        db.session.add(cat)
-        categories.append(cat)
-    db.session.commit()
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
 
-    # Sessions reuse the same Category records created above (member
-    # categories), since Session.category_id now references the
-    # categories table directly.
-    cat_objects = categories
+    def has_role(self, *roles):
+        return self.role in roles
 
-    # Members
-    names = [
-        'Arjun Sharma', 'Priya Patel', 'Ravi Kumar', 'Sunita Singh', 'Mohan Das',
-        'Kavitha Reddy', 'Suresh Naidu', 'Lakshmi Iyer', 'Rajesh Gupta', 'Anjali Mehta',
-        'Vikram Rao', 'Deepa Nair', 'Anil Joshi', 'Pooja Verma', 'Sanjay Tiwari',
-        'Meena Pillai', 'Karthik Balaji', 'Radha Krishnan', 'Dinesh Malhotra', 'Usha Pandey',
-        'Srinivas Rao', 'Geetha Kumari', 'Mahesh Babu', 'Nandini Rao', 'Venkat Ramaiah',
-        'Saranya Devi', 'Subramaniam K', 'Kamala Devi', 'Chandrasekhar N', 'Pavithra S'
-    ]
-    genders = ['Male', 'Female']
-    religions = ['Hindu', 'Muslim', 'Christian', 'Sikh', 'Buddhist']
-    areas = ['KARUR', 'TRICHY', 'COIMBATORE', 'MADURAI', 'CHENNAI', 'SALEM', 'ERODE', 'TIRUPUR']
+    def can(self, permission):
+        perms = {
+            'super_admin': ['all'],
+            'admin': ['manage_members', 'import_csv', 'manage_sessions', 'mark_attendance',
+                      'view_reports', 'manage_users', 'reopen_attendance'],
+            'coordinator': ['manage_members', 'import_csv', 'manage_sessions', 'mark_attendance',
+                            'view_reports', 'reopen_attendance'],
+            'trainer': ['manage_members', 'import_csv', 'manage_sessions', 'mark_attendance', 'view_reports'],
+        }
+        role_perms = perms.get(self.role, [])
+        return 'all' in role_perms or permission in role_perms
 
-    member_objects = []
-    for i, name in enumerate(names):
-        m = Member(
-            member_id=f'M{(i+1):04d}',
-            full_name=name,
-            gender=random.choice(genders),
-            age=random.randint(18, 65),
-            religion=random.choice(religions),
-            mobile_number=f'9{random.randint(100000000, 999999999)}',
-            area=random.choice(areas),
-            join_date=date.today() - timedelta(days=random.randint(0, 365)),
-            status='active' if i < 25 else 'inactive',
-            created_by=super_admin_ids[i % len(super_admin_ids)]
-        )
-        assigned_cats = random.sample(categories, random.randint(1, min(3, len(categories))))
-        for cat in assigned_cats:
-            m.categories.append(cat)
-        db.session.add(m)
-        member_objects.append(m)
-    db.session.commit()
+    @property
+    def role_display(self):
+        return ROLE_DISPLAY.get(self.role, self.role.replace('_', ' ').title())
 
-    # Sessions
-    session_names = [
-        'Morning Meditation', 'Youth Leadership', 'Wellness Workshop', 'Community Outreach',
-        'Advanced Meditation', 'Teen Program', 'Health Awareness', 'Volunteer Training',
-        'Stress Management', 'Mindfulness Retreat'
-    ]
-    statuses = ['completed', 'completed', 'completed', 'scheduled', 'scheduled',
-                'draft', 'cancelled', 'completed', 'scheduled', 'draft']
+    @property
+    def role_rank(self):
+        return role_rank(self.role)
 
-    session_objects = []
-    for i, (sname, sstatus) in enumerate(zip(session_names, statuses)):
-        s = Session(
-            session_id=f'S{(i+1):04d}',
-            session_name=sname,
-            category_id=cat_objects[i % len(cat_objects)].id,
-            date=date.today() + timedelta(days=i*3 - 15),
-            start_time='09:00',
-            end_time='11:00',
-            venue=random.choice(['Main Hall', 'Community Center', 'Park', 'School Ground']),
-            status=sstatus,
-            attendance_locked=(sstatus == 'completed'),
-            created_by=super_admin_ids[i % len(super_admin_ids)]
-        )
-        db.session.add(s)
-        session_objects.append(s)
-    db.session.commit()
+    def is_super_admin(self):
+        return self.role == 'super_admin'
 
-    for s in session_objects:
-        if s.status == 'completed':
-            session_cat = s.category
-            eligible_members = [m for m in member_objects if session_cat in m.categories and m.status == 'active'][:20]
-            for j, m in enumerate(eligible_members):
-                att = Attendance(
-                    session_id=s.id,
-                    member_id=m.id,
-                    status=random.choice(['present', 'present', 'present', 'absent']),
-                    marked_by=super_admin_ids[j % len(super_admin_ids)]
-                )
-                db.session.add(att)
-    db.session.commit()
+    def can_manage_user(self, target):
+        """Return True if self can manage target user."""
 
-    log = AuditLog(user_id=None, username='system', role='system',
-                   action='System Initialized', description='Database seeded with initial data.')
-    db.session.add(log)
-    db.session.commit()
+        # Cannot manage own account
+        if self.id == target.id:
+            return False
+
+        # Super Admin can manage everyone (including other super_admins) except themselves
+        if self.role == 'super_admin':
+            return True
+
+        # Admin can manage coordinator and trainer only
+        if self.role == 'admin':
+            return target.role in ('coordinator', 'trainer')
+
+        # Coordinator can manage trainer only
+        if self.role == 'coordinator':
+            return target.role == 'trainer'
+
+        return False
+
+
+class Member(db.Model):
+    __tablename__ = 'members'
+    id = db.Column(db.Integer, primary_key=True)
+    member_id = db.Column(db.String(10), unique=True, nullable=False)
+    full_name = db.Column(db.String(100), nullable=False)
+    gender = db.Column(db.String(10))
+    age = db.Column(db.Integer)
+    religion = db.Column(db.String(50))
+    mobile_number = db.Column(db.String(15))
+    area = db.Column(db.String(100))
+    join_date = db.Column(db.Date, default=datetime.utcnow)
+    status = db.Column(db.String(10), default='active')  # active, inactive, deleted
+    created_by = db.Column(db.Integer, db.ForeignKey('users.id'))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updated_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    inactive_date = db.Column(db.DateTime, nullable=True)
+    deleted_date = db.Column(db.DateTime, nullable=True)
+    deleted_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+
+    categories = db.relationship('Category', secondary=member_category, backref=db.backref('members', lazy='dynamic'))
+    attendance_records = db.relationship('Attendance', backref='member', lazy='dynamic')
+
+    @staticmethod
+    def generate_member_id():
+        last = Member.query.order_by(Member.id.desc()).first()
+        if last:
+            num = int(last.member_id[1:]) + 1
+        else:
+            num = 1
+        return f'M{num:04d}'
+
+
+class Category(db.Model):
+    __tablename__ = 'categories'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), unique=True, nullable=False)
+    description = db.Column(db.String(255))
+    status = db.Column(db.String(10), default='active')
+    created_by = db.Column(db.Integer, db.ForeignKey('users.id'))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    @property
+    def active_member_count(self):
+        return self.members.filter_by(status='active').count()
+
+    @property
+    def inactive_member_count(self):
+        return self.members.filter_by(status='inactive').count()
+
+    @property
+    def total_member_count(self):
+        return self.members.count()
+
+    # Sessions assigned to this category. Sessions now use the same
+    # Category table as members (see Categories page) instead of a
+    # separate session-only category list, so categories created/edited
+    # on the Categories page are immediately reflected on the Sessions
+    # pages (filters, add/edit forms, attendance, reports).
+    sessions = db.relationship('Session', backref='category', lazy='dynamic')
+
+
+class SessionCategory(db.Model):
+    """Legacy table, kept for backward compatibility with existing data
+    and the (unused/unlinked) session-categories admin routes. Sessions
+    no longer reference this table — see Category.sessions above."""
+    __tablename__ = 'session_categories'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), unique=True, nullable=False)
+    description = db.Column(db.String(255))
+    status = db.Column(db.String(10), default='active')
+    created_by = db.Column(db.Integer, db.ForeignKey('users.id'))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+class Session(db.Model):
+    __tablename__ = 'sessions'
+    id = db.Column(db.Integer, primary_key=True)
+    session_id = db.Column(db.String(10), unique=True, nullable=False)
+    session_name = db.Column(db.String(150), nullable=False)
+    category_id = db.Column(db.Integer, db.ForeignKey('categories.id'))
+    date = db.Column(db.Date, nullable=False)
+    start_time = db.Column(db.String(10))
+    end_time = db.Column(db.String(10))
+    venue = db.Column(db.String(150))
+    status = db.Column(db.String(15), default='scheduled')
+    attendance_locked = db.Column(db.Boolean, default=False)
+    created_by = db.Column(db.Integer, db.ForeignKey('users.id'))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    attendance_records = db.relationship('Attendance', backref='session', lazy='dynamic')
+
+    @staticmethod
+    def generate_session_id():
+        last = Session.query.order_by(Session.id.desc()).first()
+        if last:
+            num = int(last.session_id[1:]) + 1
+        else:
+            num = 1
+        return f'S{num:04d}'
+
+
+class Attendance(db.Model):
+    __tablename__ = 'attendance'
+    id = db.Column(db.Integer, primary_key=True)
+    session_id = db.Column(db.Integer, db.ForeignKey('sessions.id'), nullable=False)
+    member_id = db.Column(db.Integer, db.ForeignKey('members.id'), nullable=False)
+    status = db.Column(db.String(10), default='absent')
+    marked_by = db.Column(db.Integer, db.ForeignKey('users.id'))
+    marked_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    __table_args__ = (db.UniqueConstraint('session_id', 'member_id', name='unique_session_member'),)
+
+
+class AuditLog(db.Model):
+    __tablename__ = 'audit_logs'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    username = db.Column(db.String(50))
+    role = db.Column(db.String(20))
+    action = db.Column(db.String(100))
+    description = db.Column(db.Text)
+    target_username = db.Column(db.String(50), nullable=True)
+    target_role = db.Column(db.String(20), nullable=True)
+    ip_address = db.Column(db.String(50))
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship('User', backref='audit_logs', foreign_keys=[user_id])
+
+
+class ImportHistory(db.Model):
+    __tablename__ = 'import_history'
+    id = db.Column(db.Integer, primary_key=True)
+    filename = db.Column(db.String(255))
+    imported_count = db.Column(db.Integer, default=0)
+    duplicate_count = db.Column(db.Integer, default=0)
+    failed_count = db.Column(db.Integer, default=0)
+    imported_by = db.Column(db.Integer, db.ForeignKey('users.id'))
+    imported_at = db.Column(db.DateTime, default=datetime.utcnow)
+    notes = db.Column(db.Text)
+
+    importer = db.relationship('User', backref='imports', foreign_keys=[imported_by])
