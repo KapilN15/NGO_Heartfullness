@@ -1,6 +1,6 @@
 from datetime import date, timedelta
 import random
-from app.models import User, Member, Category, SessionCategory, Session, Attendance, AuditLog
+from app.models import User, Member, Category, Session, Attendance, AuditLog
 from app import db
 
 
@@ -51,15 +51,10 @@ def seed_data():
         categories.append(cat)
     db.session.commit()
 
-    # Session categories
-    session_cats = ['Meditation', 'Youth Program', 'Wellness Session', 'Community Service', 'Leadership Training']
-    cat_objects = []
-    for i, c in enumerate(session_cats):
-        cat = SessionCategory(name=c, description=f'{c} activities', status='active',
-                               created_by=super_admin_ids[i % len(super_admin_ids)])
-        db.session.add(cat)
-        cat_objects.append(cat)
-    db.session.commit()
+    # Sessions reuse the same Category records created above (member
+    # categories), since Session.category_id now references the
+    # categories table directly.
+    cat_objects = categories
 
     # Members
     names = [
