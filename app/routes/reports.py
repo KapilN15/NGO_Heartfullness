@@ -3,7 +3,7 @@ import csv
 from flask import Blueprint, render_template, request, send_file, flash, redirect, url_for
 from flask_login import login_required, current_user
 from sqlalchemy import func, case
-from app.models import Member, Session, Attendance, SessionCategory, Category
+from app.models import Member, Session, Attendance, Category
 from app import db
 
 reports_bp = Blueprint('reports', __name__)
@@ -74,7 +74,7 @@ def attendance_report():
         Session.session_id,
         Session.session_name,
         Session.date,
-        SessionCategory.name.label('category_name'),
+        Category.name.label('category_name'),
 
         func.count(Attendance.id).label('total'),
 
@@ -93,8 +93,8 @@ def attendance_report():
         Attendance.session_id == Session.id
 
     ).outerjoin(
-        SessionCategory,
-        SessionCategory.id == Session.category_id
+        Category,
+        Category.id == Session.category_id
 
     ).filter(
         Session.status == 'completed'
@@ -135,13 +135,13 @@ def attendance_report():
             Session.session_id,
             Session.session_name,
             Session.date,
-            SessionCategory.name
+            Category.name
         )
         .order_by(Session.date.desc())
         .all()
     )
 
-    session_cats = SessionCategory.query.filter_by(
+    session_cats = Category.query.filter_by(
         status='active'
     ).all()
 
@@ -166,18 +166,18 @@ def sessions_report():
     cat_f = request.args.get('category', '')
 
     q = db.session.query(
-        SessionCategory.name,
+        Category.name,
         func.count(Session.id).label('total'),
         func.sum(case((Session.status == 'completed',  1), else_=0)).label('completed'),
         func.sum(case((Session.status == 'scheduled',  1), else_=0)).label('scheduled'),
         func.sum(case((Session.status == 'cancelled',  1), else_=0)).label('cancelled'),
         func.sum(case((Session.status == 'draft',      1), else_=0)).label('draft'),
-    ).outerjoin(Session, Session.category_id == SessionCategory.id)
+    ).outerjoin(Session, Session.category_id == Category.id)
 
-    if cat_f: q = q.filter(SessionCategory.id == int(cat_f))
-    stats = q.group_by(SessionCategory.id).all()
+    if cat_f: q = q.filter(Category.id == int(cat_f))
+    stats = q.group_by(Category.id).all()
 
-    session_cats = SessionCategory.query.filter_by(status='active').all()
+    session_cats = Category.query.filter_by(status='active').all()
     return render_template('reports/sessions.html', stats=stats, session_cats=session_cats, cat_f=cat_f)
 
 
@@ -279,7 +279,7 @@ def export_attendance_csv():
 
         Session.date,
 
-        SessionCategory.name.label('cat_name'),
+        Category.name.label('cat_name'),
 
         func.count(Attendance.id).label('total'),
 
@@ -309,9 +309,9 @@ def export_attendance_csv():
 
     ).outerjoin(
 
-        SessionCategory,
+        Category,
 
-        SessionCategory.id == Session.category_id
+        Category.id == Session.category_id
 
     ).filter(
 
@@ -383,7 +383,7 @@ def export_attendance_csv():
 
             Session.date,
 
-            SessionCategory.name
+            Category.name
 
         )
 
