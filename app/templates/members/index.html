@@ -153,12 +153,11 @@
                   <i class="bi bi-pencil"></i>
                 </a>
                 {% if m.status == 'active' %}
-                <form method="POST" action="{{ url_for('members.delete', id=m.id) }}" style="margin:0">
-                  <button type="submit" class="btn-sm-action btn-delete"
-                          data-confirm="Deactivate this member?">
-                    <i class="bi bi-person-dash"></i>
-                  </button>
-                </form>
+                <button type="button" class="btn-sm-action btn-delete"
+                        onclick="deactivateMember({{ m.id }}, '{{ m.full_name | e }}')"
+                        title="Deactivate this member">
+                  <i class="bi bi-person-dash"></i>
+                </button>
                 {% endif %}
                 {% endif %}
               </div>
@@ -200,6 +199,9 @@
     {% endif %}
   </div>
 </form>
+
+<!-- Hidden form for individual member deactivation (outside bulkForm to avoid nesting) -->
+<form id="deactivateForm" method="POST" action="" style="display:none"></form>
 
 <!-- Bulk Delete Confirmation Modal -->
 <div id="bulkDeleteModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center">
@@ -282,6 +284,11 @@ function toggleBulkDeleteBtn() {
   btn.disabled = !checked;
   btn.style.opacity = checked ? '1' : '0.5';
   btn.style.cursor = checked ? 'pointer' : 'not-allowed';
+}
+function deactivateMember(memberId, memberName) {
+  if (!confirm("Deactivate member: " + memberName + "?")) return;
+  document.getElementById("deactivateForm").action = "/members/delete/" + memberId;
+  document.getElementById("deactivateForm").submit();
 }
 function submitBulkDelete() {
   document.getElementById('confirmBulkInput').value = '1';
